@@ -14,14 +14,14 @@
 #include <parse_expression/composition.h>
 
 #include <arithmetic/expression.h>
-#include <arithmetic/assignment.h>
+#include <arithmetic/action.h>
 
 #ifndef interpret_arithmetic_export_h
 #define interpret_arithmetic_export_h
 
-parse_expression::expression export_expression(const arithmetic::expression &expr, ucs::variable_set &variables);
-parse_expression::assignment export_assignment(const arithmetic::assignment &expr, ucs::variable_set &variables);
-parse_expression::composition export_composition(const vector<arithmetic::assignment> &expr, ucs::variable_set &variables);
-parse_expression::composition export_composition(const vector<vector<arithmetic::assignment> > &expr, ucs::variable_set &variables);
+parse_expression::expression export_expression(const arithmetic::expression &expr, const ucs::variable_set &variables);
+parse_expression::assignment export_assignment(const arithmetic::action &expr, const ucs::variable_set &variables);
+parse_expression::composition export_composition(const arithmetic::cube &expr, const ucs::variable_set &variables);
+parse_expression::composition export_composition(const arithmetic::cover &expr, const ucs::variable_set &variables);
 
 #endif

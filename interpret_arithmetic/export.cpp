@@ -8,7 +8,7 @@
 #include "export.h"
 #include <interpret_ucs/export.h>
 
-parse_expression::expression export_expression(const arithmetic::expression &expr, ucs::variable_set &variables)
+parse_expression::expression export_expression(const arithmetic::expression &expr, const ucs::variable_set &variables)
 {
 	vector<parse_expression::expression> result;
 
@@ -45,7 +45,7 @@ parse_expression::expression export_expression(const arithmetic::expression &exp
 	}
 }
 
-parse_expression::assignment export_assignment(const arithmetic::assignment &expr, ucs::variable_set &variables)
+parse_expression::assignment export_assignment(const arithmetic::action &expr, const ucs::variable_set &variables)
 {
 	parse_expression::assignment result;
 	result.valid = true;
@@ -58,17 +58,15 @@ parse_expression::assignment export_assignment(const arithmetic::assignment &exp
 	if (expr.expr.operations.size() > 0)
 		result.expressions.push_back(export_expression(expr.expr, variables));
 
-	if (expr.behavior == arithmetic::assignment::assign)
+	if (expr.behavior == arithmetic::action::assign)
 		result.operation = ":=";
-	else if (expr.behavior == arithmetic::assignment::guard)
-		result.operation = "";
-	else if (expr.behavior == arithmetic::assignment::send)
+	else if (expr.behavior == arithmetic::action::send)
 	{
 		result.operation = "!";
 		if (expr.variable != -1)
 			result.operation += "?";
 	}
-	else if (expr.behavior == arithmetic::assignment::receive)
+	else if (expr.behavior == arithmetic::action::receive)
 	{
 		result.operation = "?";
 		if (expr.expr.operations.size() != 0)
@@ -78,31 +76,31 @@ parse_expression::assignment export_assignment(const arithmetic::assignment &exp
 	return result;
 }
 
-parse_expression::composition export_composition(const vector<arithmetic::assignment> &expr, ucs::variable_set &variables)
+parse_expression::composition export_composition(const arithmetic::cube &expr, const ucs::variable_set &variables)
 {
 	parse_expression::composition result;
 	result.valid = true;
 	result.level = 1;
 
-	for (int i = 0; i < (int)expr.size(); i++)
+	for (int i = 0; i < (int)expr.actions.size(); i++)
 	{
-		if (expr[i].behavior == arithmetic::assignment::guard)
-			result.guards.push_back(export_expression(expr[i].expr, variables));
+		if (expr.actions[i].variable < 0 && expr.actions[i].channel < 0)
+			result.guards.push_back(export_expression(expr.actions[i].expr, variables));
 		else
-			result.literals.push_back(export_assignment(expr[i], variables));
+			result.literals.push_back(export_assignment(expr.actions[i], variables));
 	}
 
 	return result;
 }
 
-parse_expression::composition export_composition(const vector<vector<arithmetic::assignment> > &expr, ucs::variable_set &variables)
+parse_expression::composition export_composition(const arithmetic::cover &expr, const ucs::variable_set &variables)
 {
 	parse_expression::composition result;
 	result.valid = true;
 	result.level = 0;
 
-	for (int i = 0; i < (int)expr.size(); i++)
-		result.compositions.push_back(export_composition(expr[i], variables));
+	for (int i = 0; i < (int)expr.cubes.size(); i++)
+		result.compositions.push_back(export_composition(expr.cubes[i], variables));
 
 	return result;
 }

@@ -54,26 +54,26 @@ arithmetic::expression import_expression(const parse_expression::expression &syn
 	return result;
 }
 
-arithmetic::assignment import_assignment(const parse_expression::assignment &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
+arithmetic::action import_assignment(const parse_expression::assignment &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
 {
-	arithmetic::assignment result;
+	arithmetic::action result;
 	if (syntax.operation == "+")
 	{
-		result.behavior = arithmetic::assignment::assign;
+		result.behavior = arithmetic::action::assign;
 		if (syntax.names.size() > 0)
 			result.variable = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		result.expr = arithmetic::operand(0, arithmetic::operand::constant);
 	}
 	else if (syntax.operation == "-")
 	{
-		result.behavior = arithmetic::assignment::assign;
+		result.behavior = arithmetic::action::assign;
 		if (syntax.names.size() > 0)
 			result.variable = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		result.expr = arithmetic::operand(0, arithmetic::operand::invalid);
 	}
 	else if (syntax.operation == ":=")
 	{
-		result.behavior = arithmetic::assignment::assign;
+		result.behavior = arithmetic::action::assign;
 		if (syntax.names.size() > 0)
 			result.variable = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		if (syntax.expressions.size() > 0)
@@ -81,7 +81,7 @@ arithmetic::assignment import_assignment(const parse_expression::assignment &syn
 	}
 	else if (syntax.operation == "?")
 	{
-		result.behavior = arithmetic::assignment::receive;
+		result.behavior = arithmetic::action::receive;
 		if (syntax.names.size() > 0)
 			result.channel = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		if (syntax.names.size() > 1)
@@ -89,7 +89,7 @@ arithmetic::assignment import_assignment(const parse_expression::assignment &syn
 	}
 	else if (syntax.operation == "!")
 	{
-		result.behavior = arithmetic::assignment::send;
+		result.behavior = arithmetic::action::send;
 		if (syntax.names.size() > 0)
 			result.channel = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		if (syntax.expressions.size() > 0)
@@ -97,7 +97,7 @@ arithmetic::assignment import_assignment(const parse_expression::assignment &syn
 	}
 	else if (syntax.operation == "?!")
 	{
-		result.behavior = arithmetic::assignment::receive;
+		result.behavior = arithmetic::action::receive;
 		if (syntax.names.size() > 0)
 			result.channel = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		if (syntax.names.size() > 1)
@@ -107,7 +107,7 @@ arithmetic::assignment import_assignment(const parse_expression::assignment &syn
 	}
 	else if (syntax.operation == "!?")
 	{
-		result.behavior = arithmetic::assignment::send;
+		result.behavior = arithmetic::action::send;
 		result.channel = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		if (syntax.names.size() > 1)
 			result.variable = define_variables(syntax.names[1], variables, default_id, tokens, auto_define, auto_define)[0];
@@ -118,9 +118,9 @@ arithmetic::assignment import_assignment(const parse_expression::assignment &syn
 	return result;
 }
 
-vector<vector<arithmetic::assignment> > import_composition(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
+arithmetic::cover import_cover(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
 {
-	vector<vector<arithmetic::assignment> > result;
+	arithmetic::cover result;
 
 	if (syntax.region != "")
 		default_id = ::atoi(syntax.region.c_str());
@@ -128,32 +128,35 @@ vector<vector<arithmetic::assignment> > import_composition(const parse_expressio
 	if (syntax.level == 0)
 	{
 		for (int i = 0; i < (int)syntax.literals.size(); i++)
-			result.push_back(vector<arithmetic::assignment>(1, import_assignment(syntax.literals[i], variables, default_id, tokens, auto_define)));
+		{
+			result.cubes.push_back(arithmetic::cube());
+			result.cubes.back().actions.push_back(import_action(syntax.literals[i], variables, default_id, tokens, auto_define));
+		}
 
 		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.push_back(vector<arithmetic::assignment>(1, arithmetic::assignment(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define))));
+			result.cubes.push_back(arithmetic::cube(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define)));
 
 		for (int i = 0; i < (int)syntax.compositions.size(); i++)
 		{
-			vector<vector<arithmetic::assignment> > temp = import_composition(syntax.compositions[i], variables, default_id, tokens, auto_define);
-			result.insert(result.end(), temp.begin(), temp.end());
+			arithmetic::cover temp = import_cover(syntax.compositions[i], variables, default_id, tokens, auto_define);
+			result.cubes.insert(result.cubes.end(), temp.cubes.begin(), temp.cubes.end());
 		}
 	}
 	else
 	{
-		result.push_back(vector<arithmetic::assignment>());
+		result.cubes.push_back(arithmetic::cube());
 		for (int i = 0; i < (int)syntax.literals.size(); i++)
-			result.back().push_back(import_assignment(syntax.literals[i], variables, default_id, tokens, auto_define));
+			result.cubes.back().actions.push_back(import_action(syntax.literals[i], variables, default_id, tokens, auto_define));
 
 		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.back().push_back(arithmetic::assignment(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define)));
+			result.cubes.back().actions.push_back(arithmetic::action(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define)));
 
 		for (int i = 0; i < (int)syntax.compositions.size(); i++)
 		{
-			vector<vector<arithmetic::assignment> > temp = import_composition(syntax.compositions[i], variables, default_id, tokens, auto_define);
-			for (int j = 0; j < (int)result.size(); j++)
-				for (int k = 0; k < (int)temp.size(); k++)
-					result[j].insert(result[j].end(), temp[k].begin(), temp[k].end());
+			arithmetic::cover temp = import_cover(syntax.compositions[i], variables, default_id, tokens, auto_define);
+			for (int j = 0; j < (int)result.cubes.size(); j++)
+				for (int k = 0; k < (int)temp.cubes.size(); k++)
+					result.cubes[j].actions.insert(result.cubes[j].actions.end(), temp.cubes[k].actions.begin(), temp.cubes[k].actions.end());
 		}
 	}
 
