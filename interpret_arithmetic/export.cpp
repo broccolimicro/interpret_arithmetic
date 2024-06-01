@@ -76,7 +76,7 @@ parse_expression::assignment export_assignment(const arithmetic::action &expr, c
 	return result;
 }
 
-parse_expression::composition export_composition(const arithmetic::cube &expr, const ucs::variable_set &variables)
+parse_expression::composition export_composition(const arithmetic::parallel &expr, const ucs::variable_set &variables)
 {
 	parse_expression::composition result;
 	result.valid = true;
@@ -93,14 +93,14 @@ parse_expression::composition export_composition(const arithmetic::cube &expr, c
 	return result;
 }
 
-parse_expression::composition export_composition(const arithmetic::cover &expr, const ucs::variable_set &variables)
+parse_expression::composition export_composition(const arithmetic::choice &expr, const ucs::variable_set &variables)
 {
 	parse_expression::composition result;
 	result.valid = true;
 	result.level = 0;
 
-	for (int i = 0; i < (int)expr.cubes.size(); i++)
-		result.compositions.push_back(export_composition(expr.cubes[i], variables));
+	for (int i = 0; i < (int)expr.terms.size(); i++)
+		result.compositions.push_back(export_composition(expr.terms[i], variables));
 
 	return result;
 }

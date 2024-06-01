@@ -118,9 +118,9 @@ arithmetic::action import_assignment(const parse_expression::assignment &syntax,
 	return result;
 }
 
-arithmetic::cover import_cover(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
+arithmetic::choice import_choice(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
 {
-	arithmetic::cover result;
+	arithmetic::choice result;
 
 	if (syntax.region != "")
 		default_id = ::atoi(syntax.region.c_str());
@@ -129,34 +129,34 @@ arithmetic::cover import_cover(const parse_expression::composition &syntax, ucs:
 	{
 		for (int i = 0; i < (int)syntax.literals.size(); i++)
 		{
-			result.cubes.push_back(arithmetic::cube());
-			result.cubes.back().actions.push_back(import_action(syntax.literals[i], variables, default_id, tokens, auto_define));
+			result.terms.push_back(arithmetic::parallel());
+			result.terms.back().actions.push_back(import_action(syntax.literals[i], variables, default_id, tokens, auto_define));
 		}
 
 		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.cubes.push_back(arithmetic::cube(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define)));
+			result.terms.push_back(arithmetic::parallel(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define)));
 
 		for (int i = 0; i < (int)syntax.compositions.size(); i++)
 		{
-			arithmetic::cover temp = import_cover(syntax.compositions[i], variables, default_id, tokens, auto_define);
-			result.cubes.insert(result.cubes.end(), temp.cubes.begin(), temp.cubes.end());
+			arithmetic::choice temp = import_choice(syntax.compositions[i], variables, default_id, tokens, auto_define);
+			result.terms.insert(result.terms.end(), temp.terms.begin(), temp.terms.end());
 		}
 	}
 	else
 	{
-		result.cubes.push_back(arithmetic::cube());
+		result.terms.push_back(arithmetic::parallel());
 		for (int i = 0; i < (int)syntax.literals.size(); i++)
-			result.cubes.back().actions.push_back(import_action(syntax.literals[i], variables, default_id, tokens, auto_define));
+			result.terms.back().actions.push_back(import_action(syntax.literals[i], variables, default_id, tokens, auto_define));
 
 		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.cubes.back().actions.push_back(arithmetic::action(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define)));
+			result.terms.back().actions.push_back(arithmetic::action(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define)));
 
 		for (int i = 0; i < (int)syntax.compositions.size(); i++)
 		{
-			arithmetic::cover temp = import_cover(syntax.compositions[i], variables, default_id, tokens, auto_define);
-			for (int j = 0; j < (int)result.cubes.size(); j++)
-				for (int k = 0; k < (int)temp.cubes.size(); k++)
-					result.cubes[j].actions.insert(result.cubes[j].actions.end(), temp.cubes[k].actions.begin(), temp.cubes[k].actions.end());
+			arithmetic::choice temp = import_choice(syntax.compositions[i], variables, default_id, tokens, auto_define);
+			for (int j = 0; j < (int)result.terms.size(); j++)
+				for (int k = 0; k < (int)temp.terms.size(); k++)
+					result.terms[j].actions.insert(result.terms[j].actions.end(), temp.terms[k].actions.begin(), temp.terms[k].actions.end());
 		}
 	}
 

@@ -5,6 +5,8 @@
  *      Author: nbingham
  */
 
+#pragma once
+
 #include <common/standard.h>
 
 #include <ucs/variable.h>
@@ -16,12 +18,7 @@
 #include <arithmetic/expression.h>
 #include <arithmetic/action.h>
 
-#ifndef interpret_arithmetic_export_h
-#define interpret_arithmetic_export_h
-
 parse_expression::expression export_expression(const arithmetic::expression &expr, const ucs::variable_set &variables);
 parse_expression::assignment export_assignment(const arithmetic::action &expr, const ucs::variable_set &variables);
-parse_expression::composition export_composition(const arithmetic::cube &expr, const ucs::variable_set &variables);
-parse_expression::composition export_composition(const arithmetic::cover &expr, const ucs::variable_set &variables);
-
-#endif
+parse_expression::composition export_composition(const arithmetic::parallel &expr, const ucs::variable_set &variables);
+parse_expression::composition export_composition(const arithmetic::choice &expr, const ucs::variable_set &variables);
