@@ -8,6 +8,53 @@
 #include "export.h"
 #include <interpret_ucs/export.h>
 
+parse_expression::expression export_expression(const arithmetic::state &s, const ucs::variable_set &variables)
+{
+	vector<parse_expression::expression> result;
+
+	for (int i = 0; i < (int)s.values.size(); i++)
+	{
+		if (s.values[i].data != arithmetic::value::unknown) {
+			parse_expression::expression add;
+			add.valid = true;
+			add.operations.push_back("==");
+			add.level = parse_expression::expression::get_level(add.operations[0]);
+			add.arguments.resize(2);
+			add.arguments[0].literal = export_variable_name(i, variables);
+			if (s.values[i].data == arithmetic::value::neutral) {
+				add.arguments[1].constant = "null";
+			} else if (s.values[i].data == arithmetic::value::unstable) {
+				add.arguments[1].constant = "unstable";
+			} else {
+				add.arguments[1].constant = ::to_string(s.values[i].data);
+			}
+
+			result.push_back(add);
+		}
+	}
+
+	if (result.size() == 1) {
+		return result.back();
+	}
+
+	parse_expression::expression add;
+	add.valid = true;
+
+	if (result.size() > 1) {
+		add.operations.push_back("&&");
+		add.level = parse_expression::expression::get_level(add.operations[0]);
+		add.arguments.resize(result.size());
+		for (int i = 0; i < (int)result.size(); i++) {
+			add.arguments[i].sub = result[i];
+		}
+	} else {
+		add.arguments.push_back(parse_expression::argument("0"));
+	}
+
+	return add;
+}
+
+
 parse_expression::expression export_expression(const arithmetic::expression &expr, const ucs::variable_set &variables)
 {
 	vector<parse_expression::expression> result;
@@ -21,7 +68,7 @@ parse_expression::expression export_expression(const arithmetic::expression &exp
 		add.arguments.resize(expr.operations[i].operands.size());
 		for (int j = 0; j < (int)expr.operations[i].operands.size(); j++)
 		{
-			if (expr.operations[i].operands[j].type == arithmetic::operand::invalid)
+			if (expr.operations[i].operands[j].type == arithmetic::operand::neutral)
 				add.arguments[j].constant = "null";
 			else if (expr.operations[i].operands[j].type == arithmetic::operand::constant)
 				add.arguments[j].constant = ::to_string(expr.operations[i].operands[j].index);

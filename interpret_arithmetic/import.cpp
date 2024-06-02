@@ -36,7 +36,7 @@ arithmetic::expression import_expression(const parse_expression::expression &syn
 		else if (syntax.arguments[i].literal.valid)
 			operands.push_back(arithmetic::operand(define_variables(syntax.arguments[i].literal, variables, default_id, tokens, auto_define, auto_define)[0], arithmetic::operand::variable));
 		else if (syntax.arguments[i].constant == "null")
-			operands.push_back(arithmetic::operand(0, arithmetic::operand::invalid));
+			operands.push_back(arithmetic::operand(0, arithmetic::operand::neutral));
 		else if (syntax.arguments[i].constant != "")
 			operands.push_back(arithmetic::operand(atoi(syntax.arguments[i].constant.c_str()), arithmetic::operand::constant));
 
@@ -69,7 +69,7 @@ arithmetic::action import_assignment(const parse_expression::assignment &syntax,
 		result.behavior = arithmetic::action::assign;
 		if (syntax.names.size() > 0)
 			result.variable = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
-		result.expr = arithmetic::operand(0, arithmetic::operand::invalid);
+		result.expr = arithmetic::operand(0, arithmetic::operand::neutral);
 	}
 	else if (syntax.operation == ":=")
 	{
