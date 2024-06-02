@@ -54,7 +54,7 @@ arithmetic::expression import_expression(const parse_expression::expression &syn
 	return result;
 }
 
-arithmetic::action import_assignment(const parse_expression::assignment &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
+arithmetic::action import_action(const parse_expression::assignment &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
 {
 	arithmetic::action result;
 	if (syntax.operation == "+")
