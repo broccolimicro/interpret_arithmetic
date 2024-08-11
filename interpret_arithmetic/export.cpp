@@ -8,50 +8,46 @@
 #include "export.h"
 #include <interpret_ucs/export.h>
 
-parse_expression::expression export_expression(const arithmetic::state &s, const ucs::variable_set &variables)
-{
-	vector<parse_expression::expression> result;
-
-	for (int i = 0; i < (int)s.values.size(); i++)
-	{
-		if (s.values[i].data != arithmetic::value::unknown) {
-			parse_expression::expression add;
-			add.valid = true;
-			add.operations.push_back("==");
-			add.level = parse_expression::expression::get_level(add.operations[0]);
-			add.arguments.resize(2);
-			add.arguments[0].literal = export_variable_name(i, variables);
-			if (s.values[i].data == arithmetic::value::neutral) {
-				add.arguments[1].constant = "null";
-			} else if (s.values[i].data == arithmetic::value::unstable) {
-				add.arguments[1].constant = "unstable";
-			} else {
-				add.arguments[1].constant = ::to_string(s.values[i].data);
-			}
-
-			result.push_back(add);
-		}
-	}
-
-	if (result.size() == 1) {
-		return result.back();
-	}
-
-	parse_expression::expression add;
-	add.valid = true;
-
-	if (result.size() > 1) {
-		add.operations.push_back("&&");
-		add.level = parse_expression::expression::get_level(add.operations[0]);
-		add.arguments.resize(result.size());
-		for (int i = 0; i < (int)result.size(); i++) {
-			add.arguments[i].sub = result[i];
-		}
+parse_expression::expression export_expression(const arithmetic::value &v, const ucs::variable_set &variables) {
+	parse_expression::expression result;
+	result.valid = true;
+	result.level = parse_expression::expression::get_level("");
+	if (v.data == arithmetic::value::neutral) {
+		result.arguments.push_back(parse_expression::argument("null"));
+	} else if (v.data == arithmetic::value::unstable) {
+		result.arguments.push_back(parse_expression::argument("unstable"));
 	} else {
-		add.arguments.push_back(parse_expression::argument("0"));
+		result.arguments.push_back(parse_expression::argument(::to_string(v.data)));
+	}
+	return result;	
+}
+
+parse_expression::composition export_composition(const arithmetic::state &s, const ucs::variable_set &variables)
+{
+	parse_expression::composition result;
+	result.valid = true;
+	result.level = 1;
+
+	for (int i = 0; i < (int)s.values.size(); i++) {
+		if (s.values[i].data != arithmetic::value::unknown) {
+			parse_expression::assignment assign;
+			assign.valid = true;
+			assign.names.push_back(export_variable_name(i, variables));
+			if (s.values[i].data == arithmetic::value::neutral) {
+				assign.operation = "-";
+			} else if (s.values[i].data == arithmetic::value::valid) {
+				assign.operation = "+";
+			} else if (s.values[i].data == arithmetic::value::unstable) {
+				assign.operation = "~";
+			} else {
+				assign.operation = ":=";
+				assign.expressions.push_back(export_expression(s.values[i], variables));
+			}
+			result.literals.push_back(assign);
+		}
 	}
 
-	return add;
+	return result;
 }
 
 
