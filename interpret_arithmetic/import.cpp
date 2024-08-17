@@ -208,6 +208,40 @@ arithmetic::action import_action(const parse_expression::assignment &syntax, ucs
 	return result;
 }
 
+arithmetic::parallel import_parallel(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
+{
+	arithmetic::parallel result;
+
+	if (syntax.region != "")
+		default_id = ::atoi(syntax.region.c_str());
+
+	if (syntax.level == 0) {
+		if (not syntax.literals.empty()) {
+			result.actions.push_back(import_action(syntax.literals[0], variables, default_id, tokens, auto_define));
+		} else if (not syntax.guards.empty()) {
+			result = arithmetic::parallel(import_expression(syntax.guards[0], variables, default_id, tokens, auto_define));
+		} else if (not syntax.compositions.empty()) {
+			arithmetic::parallel temp = import_parallel(syntax.compositions[0], variables, default_id, tokens, auto_define);
+			result.actions.insert(result.actions.end(), temp.actions.begin(), temp.actions.end());
+		}
+	} else {
+		for (int i = 0; i < (int)syntax.literals.size(); i++)
+			result.actions.push_back(import_action(syntax.literals[i], variables, default_id, tokens, auto_define));
+
+		for (int i = 0; i < (int)syntax.guards.size(); i++)
+			result.actions.push_back(arithmetic::action(import_expression(syntax.guards[i], variables, default_id, tokens, auto_define)));
+
+		for (int i = 0; i < (int)syntax.compositions.size(); i++)
+		{
+			arithmetic::parallel temp = import_parallel(syntax.compositions[i], variables, default_id, tokens, auto_define);
+			result.actions.insert(result.actions.end(), temp.actions.begin(), temp.actions.end());
+		}
+	}
+
+	return result;
+}
+
+
 arithmetic::choice import_choice(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
 {
 	arithmetic::choice result;

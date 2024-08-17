@@ -19,6 +19,7 @@
 #include <arithmetic/action.h>
 
 parse_expression::expression export_expression(const arithmetic::value &v, const ucs::variable_set &variables);
+parse_expression::expression export_expression(const arithmetic::state &s, const ucs::variable_set &variables);
 parse_expression::composition export_composition(const arithmetic::state &s, const ucs::variable_set &variables);
 parse_expression::expression export_expression(const arithmetic::expression &expr, const ucs::variable_set &variables);
 parse_expression::assignment export_assignment(const arithmetic::action &expr, const ucs::variable_set &variables);

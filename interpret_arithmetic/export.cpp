@@ -22,6 +22,53 @@ parse_expression::expression export_expression(const arithmetic::value &v, const
 	return result;	
 }
 
+parse_expression::expression export_expression(const arithmetic::state &s, const ucs::variable_set &variables)
+{
+	vector<parse_expression::expression> result;
+
+	for (int i = 0; i < (int)s.values.size(); i++)
+	{
+		if (s.values[i].data != arithmetic::value::unknown) {
+			parse_expression::expression add;
+			add.valid = true;
+			add.operations.push_back("==");
+			add.level = parse_expression::expression::get_level(add.operations[0]);
+			add.arguments.resize(2);
+			add.arguments[0].literal = export_variable_name(i, variables);
+			if (s.values[i].data == arithmetic::value::neutral) {
+				add.arguments[1].constant = "null";
+			} else if (s.values[i].data == arithmetic::value::unstable) {
+				add.arguments[1].constant = "unstable";
+			} else {
+				add.arguments[1].constant = ::to_string(s.values[i].data);
+			}
+
+			result.push_back(add);
+		}
+	}
+
+	if (result.size() == 1) {
+		return result.back();
+	}
+
+	parse_expression::expression add;
+	add.valid = true;
+
+	if (result.size() > 1) {
+		add.operations.push_back("&&");
+		add.level = parse_expression::expression::get_level(add.operations[0]);
+		add.arguments.resize(result.size());
+		for (int i = 0; i < (int)result.size(); i++) {
+			add.arguments[i].sub = result[i];
+		}
+	} else {
+		add.arguments.push_back(parse_expression::argument("0"));
+	}
+
+	return add;
+}
+
+
 parse_expression::composition export_composition(const arithmetic::state &s, const ucs::variable_set &variables)
 {
 	parse_expression::composition result;
@@ -127,7 +174,7 @@ parse_expression::composition export_composition(const arithmetic::parallel &exp
 
 	for (int i = 0; i < (int)expr.actions.size(); i++)
 	{
-		if (expr.actions[i].variable < 0 && expr.actions[i].channel < 0)
+		if (expr.actions[i].variable < 0 and expr.actions[i].channel < 0)
 			result.guards.push_back(export_expression(expr.actions[i].expr, variables));
 		else
 			result.literals.push_back(export_assignment(expr.actions[i], variables));
@@ -142,8 +189,9 @@ parse_expression::composition export_composition(const arithmetic::choice &expr,
 	result.valid = true;
 	result.level = 0;
 
-	for (int i = 0; i < (int)expr.terms.size(); i++)
+	for (int i = 0; i < (int)expr.terms.size(); i++) {
 		result.compositions.push_back(export_composition(expr.terms[i], variables));
+	}
 
 	return result;
 }
