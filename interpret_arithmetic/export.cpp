@@ -13,7 +13,9 @@ parse_expression::expression export_expression(const arithmetic::value &v, const
 	result.valid = true;
 	result.level = parse_expression::expression::get_level("");
 	if (v.data == arithmetic::value::neutral) {
-		result.arguments.push_back(parse_expression::argument("null"));
+		result.arguments.push_back(parse_expression::argument("gnd"));
+	} else if (v.data == arithmetic::value::valid) {
+		result.arguments.push_back(parse_expression::argument("vdd"));
 	} else if (v.data == arithmetic::value::unstable) {
 		result.arguments.push_back(parse_expression::argument("unstable"));
 	} else {
@@ -31,16 +33,26 @@ parse_expression::expression export_expression(const arithmetic::state &s, const
 		if (s.values[i].data != arithmetic::value::unknown) {
 			parse_expression::expression add;
 			add.valid = true;
-			add.operations.push_back("==");
-			add.level = parse_expression::expression::get_level(add.operations[0]);
-			add.arguments.resize(2);
-			add.arguments[0].literal = export_variable_name(i, variables);
 			if (s.values[i].data == arithmetic::value::neutral) {
-				add.arguments[1].constant = "null";
-			} else if (s.values[i].data == arithmetic::value::unstable) {
-				add.arguments[1].constant = "unstable";
+				add.operations.push_back("~");
+				add.level = parse_expression::expression::get_level(add.operations[0]);
+				add.arguments.resize(1);
+				add.arguments[0].literal = export_variable_name(i, variables);
+			} else if (s.values[i].data == arithmetic::value::valid) {
+				add.operations.push_back("");
+				add.level = parse_expression::expression::get_level(add.operations[0]);
+				add.arguments.resize(1);
+				add.arguments[0].literal = export_variable_name(i, variables);
 			} else {
-				add.arguments[1].constant = ::to_string(s.values[i].data);
+				add.operations.push_back("==");
+				add.level = parse_expression::expression::get_level(add.operations[0]);
+				add.arguments.resize(2);
+				add.arguments[0].literal = export_variable_name(i, variables);
+				if (s.values[i].data == arithmetic::value::unstable) {
+					add.arguments[1].constant = "unstable";
+				} else {
+					add.arguments[1].constant = ::to_string(s.values[i].data);
+				}
 			}
 
 			result.push_back(add);
@@ -55,14 +67,14 @@ parse_expression::expression export_expression(const arithmetic::state &s, const
 	add.valid = true;
 
 	if (result.size() > 1) {
-		add.operations.push_back("&&");
+		add.operations.push_back("&");
 		add.level = parse_expression::expression::get_level(add.operations[0]);
 		add.arguments.resize(result.size());
 		for (int i = 0; i < (int)result.size(); i++) {
 			add.arguments[i].sub = result[i];
 		}
 	} else {
-		add.arguments.push_back(parse_expression::argument("0"));
+		add.arguments.push_back(parse_expression::argument("vdd"));
 	}
 
 	return add;
@@ -97,6 +109,18 @@ parse_expression::composition export_composition(const arithmetic::state &s, con
 	return result;
 }
 
+parse_expression::composition export_composition(const arithmetic::region &r, const ucs::variable_set &variables)
+{
+	parse_expression::composition result;
+	result.valid = true;
+	result.level = 0;
+
+	for (int i = 0; i < (int)r.states.size(); i++) {
+		result.compositions.push_back(export_composition(r.states[i], variables));
+	}
+
+	return result;
+}
 
 parse_expression::expression export_expression(const arithmetic::expression &expr, const ucs::variable_set &variables)
 {
@@ -112,7 +136,9 @@ parse_expression::expression export_expression(const arithmetic::expression &exp
 		for (int j = 0; j < (int)expr.operations[i].operands.size(); j++)
 		{
 			if (expr.operations[i].operands[j].type == arithmetic::operand::neutral)
-				add.arguments[j].constant = "null";
+				add.arguments[j].constant = "gnd";
+			else if (expr.operations[i].operands[j].type == arithmetic::operand::valid)
+				add.arguments[j].constant = "vdd";
 			else if (expr.operations[i].operands[j].type == arithmetic::operand::constant)
 				add.arguments[j].constant = ::to_string(expr.operations[i].operands[j].index);
 			else if (expr.operations[i].operands[j].type == arithmetic::operand::variable)
@@ -130,7 +156,7 @@ parse_expression::expression export_expression(const arithmetic::expression &exp
 	{
 		parse_expression::expression add;
 		add.valid = true;
-		add.arguments.push_back(parse_expression::argument("null"));
+		add.arguments.push_back(parse_expression::argument("gnd"));
 		return add;
 	}
 }
@@ -148,9 +174,17 @@ parse_expression::assignment export_assignment(const arithmetic::action &expr, c
 	if (expr.expr.operations.size() > 0)
 		result.expressions.push_back(export_expression(expr.expr, variables));
 
-	if (expr.behavior == arithmetic::action::assign)
-		result.operation = ":=";
-	else if (expr.behavior == arithmetic::action::send)
+	if (expr.behavior == arithmetic::action::assign) {
+		if (expr.expr.is_neutral()) {
+			result.operation = "-";
+			result.expressions.clear();
+		} else if (expr.expr.is_valid()) {
+			result.operation = "+";
+			result.expressions.clear();
+		} else {
+			result.operation = ":=";
+		}
+	} else if (expr.behavior == arithmetic::action::send)
 	{
 		result.operation = "!";
 		if (expr.variable != -1)

@@ -26,8 +26,10 @@ arithmetic::state import_state(const parse_expression::assignment &syntax, ucs::
 		for (int i = 0; i < m; i++) {
 			vector<int> v = define_variables(syntax.names[i], variables, default_id, tokens, auto_define, auto_define);
 			if (syntax.expressions[i].operations.empty() and syntax.expressions[i].arguments.size() == 1 and syntax.expressions[i].arguments[0].constant != "") {
-				if (syntax.expressions[i].arguments[0].constant == "null") {
+				if (syntax.expressions[i].arguments[0].constant == "gnd") {
 					result.set(v[0], arithmetic::value::neutral);
+				} else if (syntax.expressions[i].arguments[0].constant == "vdd") {
+					result.set(v[0], arithmetic::value::valid);
 				} else if (syntax.expressions[i].arguments[0].constant != "") {
 					result.set(v[0], atoi(syntax.expressions[i].arguments[0].constant.c_str()));
 				} else {
@@ -100,46 +102,64 @@ arithmetic::state import_state(const parse_expression::composition &syntax, ucs:
 
 arithmetic::expression import_expression(const parse_expression::expression &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define)
 {
+	if (syntax.region != "")
+		default_id = atoi(syntax.region.c_str());
+
+	if (syntax.level >= (int)syntax.precedence.size())
+	{
+		if (tokens != NULL)
+		{
+			tokens->load(&syntax);
+			tokens->error("unrecognized operation", __FILE__, __LINE__);
+		}
+		else
+			error(syntax.to_string(), "unrecognized operation", __FILE__, __LINE__);
+		return arithmetic::expression(false);
+	}
+
 	arithmetic::expression result;
-	vector<arithmetic::operand> operands;
 
 	for (int i = 0; i < (int)syntax.arguments.size(); i++)
 	{
-		int offset = (int)result.operations.size();
-
 		if (syntax.arguments[i].sub.valid)
 		{
 			arithmetic::expression sub = import_expression(syntax.arguments[i].sub, variables, default_id, tokens, auto_define);
-
-			for (int j = 0; j < (int)sub.operations.size(); j++)
-			{
-				arithmetic::operation tmp = sub.operations[j];
-				for (int k = 0; k < (int)tmp.operands.size(); k++)
-					if (tmp.operands[k].type == arithmetic::operand::expression)
-						tmp.operands[k].index += offset;
-
-				result.operations.push_back(tmp);
+			if (i == 0) {
+				result = sub;
+			} else {
+				result.push(syntax.operations[i-1], sub);
 			}
-
-			operands.push_back(arithmetic::operand((int)result.operations.size()-1, arithmetic::operand::expression));
 		}
-		else if (syntax.arguments[i].literal.valid)
-			operands.push_back(arithmetic::operand(define_variables(syntax.arguments[i].literal, variables, default_id, tokens, auto_define, auto_define)[0], arithmetic::operand::variable));
-		else if (syntax.arguments[i].constant == "null")
-			operands.push_back(arithmetic::operand(0, arithmetic::operand::neutral));
-		else if (syntax.arguments[i].constant != "")
-			operands.push_back(arithmetic::operand(atoi(syntax.arguments[i].constant.c_str()), arithmetic::operand::constant));
-
-		if (operands.size() == 2)
-		{
-			result.operations.push_back(arithmetic::operation(syntax.operations[i-1], operands));
-			operands.clear();
-			operands.push_back(arithmetic::operand((int)result.operations.size()-1, arithmetic::operand::expression));
+		else {
+			arithmetic::operand sub;
+			if (syntax.arguments[i].literal.valid) {
+				sub = arithmetic::operand(define_variables(syntax.arguments[i].literal, variables, default_id, tokens, auto_define, auto_define)[0], arithmetic::operand::variable);
+			} else if (syntax.arguments[i].constant == "gnd") {
+				sub = arithmetic::operand(0, arithmetic::operand::neutral);
+			} else if (syntax.arguments[i].constant == "vdd") {
+				sub = arithmetic::operand(0, arithmetic::operand::valid);
+			} else if (syntax.arguments[i].constant != "") {
+				sub = arithmetic::operand(atoi(syntax.arguments[i].constant.c_str()), arithmetic::operand::constant);
+			}
+			if (i == 0) {
+				result = sub;
+			} else {
+				result.push(syntax.operations[i-1], sub);
+			}
 		}
 	}
 
-	if (result.operations.size() == 0)
-		result.operations.push_back(arithmetic::operation("", operands));
+	if (syntax.arguments.size() == 1) {
+		if (parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::left_unary) {
+			for (int i = (int)syntax.operations.size()-1; i >= 0; i--) {
+				result.push(syntax.operations[i]);
+			}
+		} else {
+			for (int i = 0; i < (int)syntax.operations.size(); i++) {
+				result.push(syntax.operations[i]);
+			}
+		}
+	}
 
 	return result;
 }
@@ -152,7 +172,7 @@ arithmetic::action import_action(const parse_expression::assignment &syntax, ucs
 		result.behavior = arithmetic::action::assign;
 		if (syntax.names.size() > 0)
 			result.variable = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
-		result.expr = arithmetic::operand(0, arithmetic::operand::constant);
+		result.expr = arithmetic::operand(0, arithmetic::operand::valid);
 	}
 	else if (syntax.operation == "-")
 	{
@@ -172,6 +192,7 @@ arithmetic::action import_action(const parse_expression::assignment &syntax, ucs
 	else if (syntax.operation == "?")
 	{
 		result.behavior = arithmetic::action::receive;
+		result.expr = arithmetic::expression(true);
 		if (syntax.names.size() > 0)
 			result.channel = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		if (syntax.names.size() > 1)
@@ -182,8 +203,11 @@ arithmetic::action import_action(const parse_expression::assignment &syntax, ucs
 		result.behavior = arithmetic::action::send;
 		if (syntax.names.size() > 0)
 			result.channel = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
-		if (syntax.expressions.size() > 0)
+		if (syntax.expressions.size() > 0) {
 			result.expr = import_expression(syntax.expressions[0], variables, default_id, tokens, auto_define);
+		} else {
+			result.expr = arithmetic::expression(true);
+		}
 	}
 	else if (syntax.operation == "?!")
 	{
@@ -192,8 +216,11 @@ arithmetic::action import_action(const parse_expression::assignment &syntax, ucs
 			result.channel = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		if (syntax.names.size() > 1)
 			result.variable = define_variables(syntax.names[1], variables, default_id, tokens, auto_define, auto_define)[0];
-		if (syntax.expressions.size() > 0)
+		if (syntax.expressions.size() > 0) {
 			result.expr = import_expression(syntax.expressions[0], variables, default_id, tokens, auto_define);
+		} else {
+			result.expr = arithmetic::expression(true);
+		}
 	}
 	else if (syntax.operation == "!?")
 	{
@@ -201,8 +228,11 @@ arithmetic::action import_action(const parse_expression::assignment &syntax, ucs
 		result.channel = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		if (syntax.names.size() > 1)
 			result.variable = define_variables(syntax.names[1], variables, default_id, tokens, auto_define, auto_define)[0];
-		if (syntax.expressions.size() > 0)
+		if (syntax.expressions.size() > 0) {
 			result.expr = import_expression(syntax.expressions[0], variables, default_id, tokens, auto_define);
+		} else {
+			result.expr = arithmetic::expression(true);
+		}
 	}
 
 	return result;
