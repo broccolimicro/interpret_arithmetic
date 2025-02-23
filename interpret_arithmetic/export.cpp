@@ -99,7 +99,7 @@ parse_expression::composition export_composition(const arithmetic::state &s, con
 			} else if (s.values[i].data == arithmetic::value::unstable) {
 				assign.operation = "~";
 			} else {
-				assign.operation = ":=";
+				assign.operation = "=";
 				assign.expressions.push_back(export_expression(s.values[i], variables));
 			}
 			result.literals.push_back(assign);
@@ -182,7 +182,7 @@ parse_expression::assignment export_assignment(const arithmetic::action &expr, c
 			result.operation = "+";
 			result.expressions.clear();
 		} else {
-			result.operation = ":=";
+			result.operation = "=";
 		}
 	} else if (expr.behavior == arithmetic::action::send)
 	{

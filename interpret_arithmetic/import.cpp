@@ -20,7 +20,7 @@ arithmetic::state import_state(const parse_expression::assignment &syntax, ucs::
 	} else if (syntax.operation == "~") {
 		vector<int> v = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define);
 		return arithmetic::state(v[0], arithmetic::value::unstable);
-	} else if (syntax.operation == ":=") {
+	} else if (syntax.operation == "=") {
 		arithmetic::state result;
 		int m = min((int)syntax.names.size(), (int)syntax.expressions.size());
 		for (int i = 0; i < m; i++) {
@@ -181,7 +181,7 @@ arithmetic::action import_action(const parse_expression::assignment &syntax, ucs
 			result.variable = define_variables(syntax.names[0], variables, default_id, tokens, auto_define, auto_define)[0];
 		result.expr = arithmetic::operand(0, arithmetic::operand::neutral);
 	}
-	else if (syntax.operation == ":=")
+	else if (syntax.operation == "=")
 	{
 		result.behavior = arithmetic::action::assign;
 		if (syntax.names.size() > 0)
