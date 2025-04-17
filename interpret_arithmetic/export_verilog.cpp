@@ -9,90 +9,72 @@
 
 namespace parse_verilog {
 
-slice export_slice(int lb, int ub, const ucs::variable_set &variables)
+variable_name export_variable_name(int variable, arithmetic::ConstNetlist nets)
 {
-	slice result;
-	result.valid = true;
-	result.lower = shared_ptr<parse::syntax>(new expression(export_expression(arithmetic::value(lb), variables)));
-	result.upper = shared_ptr<parse::syntax>(new expression(export_expression(arithmetic::value(ub), variables)));
-	return result;
-}
+	auto net = nets.netAt(variable);
 
-member_name export_member_name(ucs::instance instance, const ucs::variable_set &variables)
-{
-	member_name result;
-	result.valid = true;
-	result.name = instance.name;
-	for (int i = 0; i < (int)instance.slice.size(); i++)
-		result.slices.push_back(export_slice(instance.slice[i], instance.slice[i], variables));
-	return result;
-}
-
-variable_name export_variable_name(ucs::variable variable, const ucs::variable_set &variables)
-{
 	variable_name result;
 	result.valid = true;
-	for (int i = 0; i < (int)variable.name.size(); i++)
-		result.names.push_back(export_member_name(variable.name[i], variables));
-	return result;
-}
-
-variable_name export_variable_name(int variable, const ucs::variable_set &variables)
-{
-	variable_name result;
-	if (variable >= 0 && variable < (int)variables.nodes.size()) {
-		result = export_variable_name(variables.nodes[variable], variables);
-	} else if (variable < 0) {
-		result = export_variable_name(ucs::variable("_"+to_string(-variable-1)), variables);
+	member_name name;
+	name.valid = true;
+	name.name = net.first;
+	result.names.push_back(name);
+	if (net.second != 0) {
+		result.region = ::to_string(net.second);
 	}
 	return result;
 }
 
-expression export_expression(const arithmetic::value &v) {
+string export_value(const arithmetic::Value &v) {
+	if (v.isNeutral()) {
+		return "0";
+	} else if (v.isValid()) {
+		return "1";
+	} else if (v.isUnstable()) {
+		return "X";
+	} else if (v.isUnknown()) {
+		return "U";
+	} else if (v.type == arithmetic::Value::INT) {
+		return ::to_string(v.ival);
+	} else if (v.type == arithmetic::Value::REAL) {
+		return ::to_string(v.rval);
+	}
+	return "";
+}
+
+expression export_expression(const arithmetic::Value &v) {
 	expression result;
 	result.valid = true;
 	result.level = expression::get_level("");
-	if (v.data == arithmetic::value::neutral) {
-		result.arguments.push_back(argument("0"));
-	} else if (v.data == arithmetic::value::valid) {
-		result.arguments.push_back(argument("1"));
-	} else if (v.data == arithmetic::value::unstable) {
-		result.arguments.push_back(argument("X"));
-	} else {
-		result.arguments.push_back(argument(::to_string(v.data)));
-	}
+	result.arguments.push_back(argument(export_value(v)));
 	return result;	
 }
 
-expression export_expression(const arithmetic::state &s, const ucs::variable_set &variables)
+expression export_expression(const arithmetic::State &s, arithmetic::ConstNetlist nets)
 {
 	vector<expression> result;
 
 	for (int i = 0; i < (int)s.values.size(); i++)
 	{
-		if (s.values[i].data != arithmetic::value::unknown) {
+		if (not s.values[i].isUnknown()) {
 			expression add;
 			add.valid = true;
-			if (s.values[i].data == arithmetic::value::neutral) {
+			if (s.values[i].isNeutral()) {
 				add.operations.push_back("~");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
-				add.arguments[0].literal = export_variable_name(i, variables);
-			} else if (s.values[i].data == arithmetic::value::valid) {
+				add.arguments[0].literal = export_variable_name(i, nets);
+			} else if (s.values[i].isValid()) {
 				add.operations.push_back("");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
-				add.arguments[0].literal = export_variable_name(i, variables);
+				add.arguments[0].literal = export_variable_name(i, nets);
 			} else {
 				add.operations.push_back("==");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(2);
-				add.arguments[0].literal = export_variable_name(i, variables);
-				if (s.values[i].data == arithmetic::value::unstable) {
-					add.arguments[1].constant = "unstable";
-				} else {
-					add.arguments[1].constant = ::to_string(s.values[i].data);
-				}
+				add.arguments[0].literal = export_variable_name(i, nets);
+				add.arguments[1].constant = export_value(s.values[i]);
 			}
 
 			result.push_back(add);
@@ -151,7 +133,7 @@ string export_operation(int op) {
 	}
 }
 
-expression export_expression(const arithmetic::expression &expr, const ucs::variable_set &variables)
+expression export_expression(const arithmetic::Expression &expr, arithmetic::ConstNetlist nets)
 {
 	vector<expression> result;
 
@@ -164,15 +146,11 @@ expression export_expression(const arithmetic::expression &expr, const ucs::vari
 		add.arguments.resize(expr.operations[i].operands.size());
 		for (int j = 0; j < (int)expr.operations[i].operands.size(); j++)
 		{
-			if (expr.operations[i].operands[j].type == arithmetic::operand::neutral)
-				add.arguments[j].constant = "0";
-			else if (expr.operations[i].operands[j].type == arithmetic::operand::valid)
-				add.arguments[j].constant = "1";
-			else if (expr.operations[i].operands[j].type == arithmetic::operand::constant)
-				add.arguments[j].constant = ::to_string(expr.operations[i].operands[j].index);
-			else if (expr.operations[i].operands[j].type == arithmetic::operand::variable)
-				add.arguments[j].literal = export_variable_name(expr.operations[i].operands[j].index, variables);
-			else if (expr.operations[i].operands[j].type == arithmetic::operand::expression)
+			if (expr.operations[i].operands[j].isConst())
+				add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
+			else if (expr.operations[i].operands[j].isVar())
+				add.arguments[j].literal = export_variable_name(expr.operations[i].operands[j].index, nets);
+			else if (expr.operations[i].operands[j].isExpr())
 				add.arguments[j].sub = result[expr.operations[i].operands[j].index];
 		}
 
