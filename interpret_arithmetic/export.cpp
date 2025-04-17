@@ -66,14 +66,16 @@ string export_operator(int op) {
 }
 
 string export_value(const arithmetic::Value &v) {
-	if (v.isNeutral()) {
-		return "gnd";
-	} else if (v.isValid()) {
-		return "vdd";
-	} else if (v.isUnstable()) {
-		return "unstable";
-	} else if (v.isUnstable()) {
-		return "undefined";
+	if (v.type == arithmetic::Value::BOOL) {
+		if (v.isNeutral()) {
+			return "gnd";
+		} else if (v.isValid()) {
+			return "vdd";
+		} else if (v.isUnstable()) {
+			return "unstable";
+		} else if (v.isUnknown()) {
+			return "undefined";
+		}
 	} else if (v.type == arithmetic::Value::INT) {
 		return ::to_string(v.ival);
 	} else if (v.type == arithmetic::Value::REAL) {

@@ -26,14 +26,16 @@ variable_name export_variable_name(int variable, arithmetic::ConstNetlist nets)
 }
 
 string export_value(const arithmetic::Value &v) {
-	if (v.isNeutral()) {
-		return "0";
-	} else if (v.isValid()) {
-		return "1";
-	} else if (v.isUnstable()) {
-		return "X";
-	} else if (v.isUnknown()) {
-		return "U";
+	if (v.type == arithmetic::Value::BOOL) {
+		if (v.isNeutral()) {
+			return "0";
+		} else if (v.isValid()) {
+			return "1";
+		} else if (v.isUnstable()) {
+			return "X";
+		} else {
+			return "U";
+		}
 	} else if (v.type == arithmetic::Value::INT) {
 		return ::to_string(v.ival);
 	} else if (v.type == arithmetic::Value::REAL) {
@@ -103,34 +105,58 @@ expression export_expression(const arithmetic::State &s, arithmetic::ConstNetlis
 }
 
 string export_operation(int op) {
-	switch (op)
-	{
-	case 0: return "~";  // bitwise not
-	case 1: return "+";
-	case 2: return "-";
-	case 3: return "valid"; // boolean check
-	case 4: return "!";  // boolean not
-	case 5: return "|"; // bitwise or
-	case 6: return "&"; // bitwise and
-	case 7: return "^";  // bitwise xor
-	case 8: return "==";
-	case 9: return "!=";
-	case 10: return "<";
-	case 11: return ">";
-	case 12: return "<=";
-	case 13: return ">=";
-	case 14: return "<<";
-	case 15: return ">>";
-	case 16: return "+";
-	case 17: return "-";
-	case 18: return "*";
-	case 19: return "/";
-	case 20: return "%";
-	case 21: return "recv";
-	case 22: return "&&"; // boolean or
-	case 23: return "||"; // boolean and
-	default: return "";
+	if (op == arithmetic::Operation::BITWISE_NOT) {
+		return "~";
+	} else if (op == arithmetic::Operation::IDENTITY) {
+		return "+";
+	} else if (op == arithmetic::Operation::NEGATION) {
+		return "-";
+	} else if (op == arithmetic::Operation::VALIDITY) {
+		return "valid";
+	} else if (op == arithmetic::Operation::BOOLEAN_NOT) {
+		return "!";
+	} else if (op == arithmetic::Operation::INVERSE) {
+		return "1/";
+	} else if (op == arithmetic::Operation::BITWISE_OR) {
+		return "|";
+	} else if (op == arithmetic::Operation::BITWISE_AND) {
+		return "&";
+	} else if (op == arithmetic::Operation::BITWISE_XOR) {
+		return "^";
+	} else if (op == arithmetic::Operation::EQUAL) {
+		return "==";
+	} else if (op == arithmetic::Operation::NOT_EQUAL) {
+		return "!=";
+	} else if (op == arithmetic::Operation::LESS) {
+		return "<";
+	} else if (op == arithmetic::Operation::GREATER) {
+		return ">";
+	} else if (op == arithmetic::Operation::LESS_EQUAL) {
+		return "<=";
+	} else if (op == arithmetic::Operation::GREATER_EQUAL) {
+		return ">=";
+	} else if (op == arithmetic::Operation::SHIFT_LEFT) {
+		return "<<";
+	} else if (op == arithmetic::Operation::SHIFT_RIGHT) {
+		return ">>";
+	} else if (op == arithmetic::Operation::ADD) {
+		return "+";
+	} else if (op == arithmetic::Operation::SUBTRACT) {
+		return "-";
+	} else if (op == arithmetic::Operation::MULTIPLY) {
+		return "*";
+	} else if (op == arithmetic::Operation::DIVIDE) {
+		return "/";
+	} else if (op == arithmetic::Operation::MOD) {
+		return "%";
+	} else if (op == arithmetic::Operation::BOOLEAN_OR) {
+		return "||";
+	} else if (op == arithmetic::Operation::BOOLEAN_AND) {
+		return "&&";
+	} else if (op == arithmetic::Operation::ARRAY) {
+		return ",";
 	}
+	return "";
 }
 
 expression export_expression(const arithmetic::Expression &expr, arithmetic::ConstNetlist nets)
