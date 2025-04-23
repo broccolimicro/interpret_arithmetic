@@ -9,13 +9,13 @@ namespace arithmetic {
 
 using Net = pair<string, int>;
 
-CONST_INTERFACE(ConstNetlist,
+_CONST_INTERFACE_ARG(ConstNetlist,
 	(int, netIndex, (string name, int region) const),
 	(Net, netAt, (int uid) const),
 	(int, netCount, () const)
 )
 
-INTERFACE(Netlist,
+_INTERFACE_ARG(Netlist,
 	(int, netIndex, (string name, int region, bool define)),
 	(Net, netAt, (int uid) const),
 	(int, netCount, () const)

@@ -6,67 +6,79 @@
  */
 
 #include "export.h"
-#include <interpret_ucs/export.h>
+
+namespace arithmetic {
+
+parse_ucs::variable_name export_net(int uid, ConstNetlist nets) {
+	parse_ucs::variable_name result;
+	result.valid = true;
+	result.names.push_back(parse_ucs::member_name());
+	result.names.back().valid = true;
+	arithmetic::Net net = nets.netAt(uid);
+	result.names.back().name = net.first;
+	result.region = ::to_string(net.second);
+	return result;
+}
 
 string export_operator(int op) {
-	if (op == arithmetic::Operation::BITWISE_NOT) {
+	if (op == Operation::BITWISE_NOT) {
 		return "!";
-	} else if (op == arithmetic::Operation::IDENTITY) {
+	} else if (op == Operation::IDENTITY) {
 		return "+";
-	} else if (op == arithmetic::Operation::NEGATION) {
+	} else if (op == Operation::NEGATION) {
 		return "-";
-	} else if (op == arithmetic::Operation::VALIDITY) {
+	} else if (op == Operation::VALIDITY) {
 		return "(bool)";
-	} else if (op == arithmetic::Operation::BOOLEAN_NOT) {
+	} else if (op == Operation::BOOLEAN_NOT) {
 		return "~";
-	} else if (op == arithmetic::Operation::INVERSE) {
+	} else if (op == Operation::INVERSE) {
 		return "1/";
-	} else if (op == arithmetic::Operation::BITWISE_OR) {
+	} else if (op == Operation::BITWISE_OR) {
 		return "||";
-	} else if (op == arithmetic::Operation::BITWISE_AND) {
+	} else if (op == Operation::BITWISE_AND) {
 		return "&&";
-	} else if (op == arithmetic::Operation::BITWISE_XOR) {
+	} else if (op == Operation::BITWISE_XOR) {
 		return "^^";
-	} else if (op == arithmetic::Operation::EQUAL) {
+	} else if (op == Operation::EQUAL) {
 		return "==";
-	} else if (op == arithmetic::Operation::NOT_EQUAL) {
+	} else if (op == Operation::NOT_EQUAL) {
 		return "~=";
-	} else if (op == arithmetic::Operation::LESS) {
+	} else if (op == Operation::LESS) {
 		return "<";
-	} else if (op == arithmetic::Operation::GREATER) {
+	} else if (op == Operation::GREATER) {
 		return ">";
-	} else if (op == arithmetic::Operation::LESS_EQUAL) {
+	} else if (op == Operation::LESS_EQUAL) {
 		return "<=";
-	} else if (op == arithmetic::Operation::GREATER_EQUAL) {
+	} else if (op == Operation::GREATER_EQUAL) {
 		return ">=";
-	} else if (op == arithmetic::Operation::SHIFT_LEFT) {
+	} else if (op == Operation::SHIFT_LEFT) {
 		return "<<";
-	} else if (op == arithmetic::Operation::SHIFT_RIGHT) {
+	} else if (op == Operation::SHIFT_RIGHT) {
 		return ">>";
-	} else if (op == arithmetic::Operation::ADD) {
+	} else if (op == Operation::ADD) {
 		return "+";
-	} else if (op == arithmetic::Operation::SUBTRACT) {
+	} else if (op == Operation::SUBTRACT) {
 		return "-";
-	} else if (op == arithmetic::Operation::MULTIPLY) {
+	} else if (op == Operation::MULTIPLY) {
 		return "*";
-	} else if (op == arithmetic::Operation::DIVIDE) {
+	} else if (op == Operation::DIVIDE) {
 		return "/";
-	} else if (op == arithmetic::Operation::MOD) {
+	} else if (op == Operation::MOD) {
 		return "%";
-	} else if (op == arithmetic::Operation::BOOLEAN_OR) {
+	} else if (op == Operation::BOOLEAN_OR) {
 		return "|";
-	} else if (op == arithmetic::Operation::BOOLEAN_AND) {
+	} else if (op == Operation::BOOLEAN_AND) {
 		return "&";
-	} else if (op == arithmetic::Operation::BOOLEAN_XOR) {
+	} else if (op == Operation::BOOLEAN_XOR) {
 		return "^";
-	} else if (op == arithmetic::Operation::ARRAY) {
+	} else if (op == Operation::ARRAY) {
 		return ",";
 	}
 	return "";
 }
 
-string export_value(const arithmetic::Value &v) {
-	if (v.type == arithmetic::Value::BOOL) {
+string export_value(const Value &v) {
+	if (v.type == Value::BOOL) {
 		if (v.isNeutral()) {
 			return "gnd";
 		} else if (v.isValid()) {
@@ -76,15 +88,15 @@ string export_value(const arithmetic::Value &v) {
 		} else if (v.isUnknown()) {
 			return "undefined";
 		}
-	} else if (v.type == arithmetic::Value::INT) {
+	} else if (v.type == Value::INT) {
 		return ::to_string(v.ival);
-	} else if (v.type == arithmetic::Value::REAL) {
+	} else if (v.type == Value::REAL) {
 		return ::to_string(v.rval);
 	}
 	return "";
 }
 
-parse_expression::expression export_expression(const arithmetic::Value &v, const ucs::variable_set &variables) {
+parse_expression::expression export_expression(const Value &v, ConstNetlist nets) {
 	parse_expression::expression result;
 	result.valid = true;
 	result.level = parse_expression::expression::get_level("");
@@ -92,7 +104,7 @@ parse_expression::expression export_expression(const arithmetic::Value &v, const
 	return result;	
 }
 
-parse_expression::expression export_expression(const arithmetic::State &s, const ucs::variable_set &variables)
+parse_expression::expression export_expression(const State &s, ConstNetlist nets)
 {
 	vector<parse_expression::expression> result;
 
@@ -105,17 +117,20 @@ parse_expression::expression export_expression(const arithmetic::State &s, const
 				add.operations.push_back("~");
 				add.level = parse_expression::expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
-				add.arguments[0].literal = export_variable_name(i, variables);
+				add.arguments[0].literal.valid = true;
+				add.arguments[0].literal = export_net(i, nets);
 			} else if (s.values[i].isValid()) {
 				add.operations.push_back("");
 				add.level = parse_expression::expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
-				add.arguments[0].literal = export_variable_name(i, variables);
+				add.arguments[0].literal.valid = true;
+				add.arguments[0].literal = export_net(i, nets);
 			} else {
 				add.operations.push_back("==");
 				add.level = parse_expression::expression::get_level(add.operations[0]);
 				add.arguments.resize(2);
-				add.arguments[0].literal = export_variable_name(i, variables);
+				add.arguments[0].literal.valid = true;
+				add.arguments[0].literal = export_net(i, nets);
 				add.arguments[1].constant = export_value(s.values[i]);
 			}
 
@@ -145,7 +160,7 @@ parse_expression::expression export_expression(const arithmetic::State &s, const
 }
 
 
-parse_expression::composition export_composition(const arithmetic::State &s, const ucs::variable_set &variables)
+parse_expression::composition export_composition(const State &s, ConstNetlist nets)
 {
 	parse_expression::composition result;
 	result.valid = true;
@@ -155,7 +170,7 @@ parse_expression::composition export_composition(const arithmetic::State &s, con
 		if (not s.values[i].isUnknown()) {
 			parse_expression::assignment assign;
 			assign.valid = true;
-			assign.names.push_back(export_variable_name(i, variables));
+			assign.names.push_back(export_net(i, nets));
 			if (s.values[i].isNeutral()) {
 				assign.operation = "-";
 			} else if (s.values[i].isValid()) {
@@ -164,7 +179,7 @@ parse_expression::composition export_composition(const arithmetic::State &s, con
 				assign.operation = "~";
 			} else {
 				assign.operation = "=";
-				assign.expressions.push_back(export_expression(s.values[i], variables));
+				assign.expressions.push_back(export_expression(s.values[i], nets));
 			}
 			result.literals.push_back(assign);
 		}
@@ -173,20 +188,20 @@ parse_expression::composition export_composition(const arithmetic::State &s, con
 	return result;
 }
 
-parse_expression::composition export_composition(const arithmetic::Region &r, const ucs::variable_set &variables)
+parse_expression::composition export_composition(const Region &r, ConstNetlist nets)
 {
 	parse_expression::composition result;
 	result.valid = true;
 	result.level = 0;
 
 	for (int i = 0; i < (int)r.states.size(); i++) {
-		result.compositions.push_back(export_composition(r.states[i], variables));
+		result.compositions.push_back(export_composition(r.states[i], nets));
 	}
 
 	return result;
 }
 
-parse_expression::expression export_expression(const arithmetic::Expression &expr, const ucs::variable_set &variables)
+parse_expression::expression export_expression(const Expression &expr, ConstNetlist nets)
 {
 	vector<parse_expression::expression> result;
 
@@ -201,9 +216,10 @@ parse_expression::expression export_expression(const arithmetic::Expression &exp
 		{
 			if (expr.operations[i].operands[j].isConst())
 				add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
-			else if (expr.operations[i].operands[j].isVar())
-				add.arguments[j].literal = export_variable_name(expr.operations[i].operands[j].index, variables);
-			else if (expr.operations[i].operands[j].isExpr())
+			else if (expr.operations[i].operands[j].isVar()) {
+				add.arguments[j].literal.valid = true;
+				add.arguments[j].literal = export_net(expr.operations[i].operands[j].index, nets);
+			} else if (expr.operations[i].operands[j].isExpr())
 				add.arguments[j].sub = result[expr.operations[i].operands[j].index];
 		}
 
@@ -221,46 +237,31 @@ parse_expression::expression export_expression(const arithmetic::Expression &exp
 	}
 }
 
-parse_expression::assignment export_assignment(const arithmetic::Action &expr, const ucs::variable_set &variables)
+parse_expression::assignment export_assignment(const Action &expr, ConstNetlist nets)
 {
 	parse_expression::assignment result;
 	result.valid = true;
 
-	if (expr.channel != -1)
-		result.names.push_back(export_variable_name(expr.channel, variables));
 	if (expr.variable != -1)
-		result.names.push_back(export_variable_name(expr.variable, variables));
+		result.names.push_back(export_net(expr.variable, nets));
 
 	if (expr.expr.operations.size() > 0)
-		result.expressions.push_back(export_expression(expr.expr, variables));
+		result.expressions.push_back(export_expression(expr.expr, nets));
 
-	if (expr.behavior == arithmetic::Action::ASSIGN) {
-		if (expr.expr.isNeutral()) {
-			result.operation = "-";
-			result.expressions.clear();
-		} else if (expr.expr.isValid()) {
-			result.operation = "+";
-			result.expressions.clear();
-		} else {
-			result.operation = "=";
-		}
-	} else if (expr.behavior == arithmetic::Action::SEND)
-	{
-		result.operation = "!";
-		if (expr.variable != -1)
-			result.operation += "?";
-	}
-	else if (expr.behavior == arithmetic::Action::RECEIVE)
-	{
-		result.operation = "?";
-		if (expr.expr.operations.size() != 0)
-			result.operation += "!";
+	if (expr.expr.isNeutral()) {
+		result.operation = "-";
+		result.expressions.clear();
+	} else if (expr.expr.isValid()) {
+		result.operation = "+";
+		result.expressions.clear();
+	} else {
+		result.operation = "=";
 	}
 
 	return result;
 }
 
-parse_expression::composition export_composition(const arithmetic::Parallel &expr, const ucs::variable_set &variables)
+parse_expression::composition export_composition(const Parallel &expr, ConstNetlist nets)
 {
 	parse_expression::composition result;
 	result.valid = true;
@@ -268,24 +269,26 @@ parse_expression::composition export_composition(const arithmetic::Parallel &exp
 
 	for (int i = 0; i < (int)expr.actions.size(); i++)
 	{
-		if (expr.actions[i].variable < 0 and expr.actions[i].channel < 0)
-			result.guards.push_back(export_expression(expr.actions[i].expr, variables));
+		if (expr.actions[i].variable < 0)
+			result.guards.push_back(export_expression(expr.actions[i].expr, nets));
 		else
-			result.literals.push_back(export_assignment(expr.actions[i], variables));
+			result.literals.push_back(export_assignment(expr.actions[i], nets));
 	}
 
 	return result;
 }
 
-parse_expression::composition export_composition(const arithmetic::Choice &expr, const ucs::variable_set &variables)
+parse_expression::composition export_composition(const Choice &expr, ConstNetlist nets)
 {
 	parse_expression::composition result;
 	result.valid = true;
 	result.level = 0;
 
 	for (int i = 0; i < (int)expr.terms.size(); i++) {
-		result.compositions.push_back(export_composition(expr.terms[i], variables));
+		result.compositions.push_back(export_composition(expr.terms[i], nets));
 	}
 
 	return result;
+}
+
 }

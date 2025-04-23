@@ -9,8 +9,6 @@
 
 #include <common/standard.h>
 
-#include <ucs/variable.h>
-
 #include <parse_verilog/expression.h>
 
 #include <arithmetic/expression.h>

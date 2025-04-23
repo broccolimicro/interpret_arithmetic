@@ -10,7 +10,6 @@
 #include <common/standard.h>
 
 #include <parse/tokenizer.h>
-#include <ucs/variable.h>
 
 #include <parse_expression/expression.h>
 #include <parse_expression/assignment.h>
@@ -19,8 +18,15 @@
 #include <arithmetic/expression.h>
 #include <arithmetic/action.h>
 
-arithmetic::State import_state(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
-arithmetic::Expression import_expression(const parse_expression::expression &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
-arithmetic::Action import_action(const parse_expression::assignment &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
-arithmetic::Parallel import_parallel(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
-arithmetic::Choice import_choice(const parse_expression::composition &syntax, ucs::variable_set &variables, int default_id, tokenizer *tokens, bool auto_define);
+#include "interface.h"
+
+namespace arithmetic {
+
+int import_net(const parse_ucs::variable_name &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
+State import_state(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
+Expression import_expression(const parse_expression::expression &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
+Action import_action(const parse_expression::assignment &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
+Parallel import_parallel(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
+Choice import_choice(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
+
+}
