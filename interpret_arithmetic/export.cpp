@@ -73,6 +73,8 @@ string export_operator(int op) {
 		return "^";
 	} else if (op == Operation::ARRAY) {
 		return ",";
+	} else if (op == Operation::CALL) {
+		return "(";
 	}
 	return "";
 }
@@ -201,35 +203,37 @@ parse_expression::composition export_composition(const Region &r, ConstNetlist n
 	return result;
 }
 
-parse_expression::expression export_expression(const Expression &expr, ConstNetlist nets)
-{
+parse_expression::expression export_expression(const Expression &expr, ConstNetlist nets) {
 	vector<parse_expression::expression> result;
-
-	for (int i = 0; i < (int)expr.operations.size(); i++)
-	{
+	for (int i = 0; i < (int)expr.operations.size(); i++) {
 		parse_expression::expression add;
 		add.valid = true;
 		add.operations.push_back(export_operator(expr.operations[i].func));
 		add.level = parse_expression::expression::get_level(add.operations[0]);
+		if (expr.operations[i].func == Operation::CALL) {
+			for (int j = 2; j < (int)expr.operations[i].operands.size(); j++) {
+				add.operations.push_back(parse_expression::expression::precedence[add.level].symbols[1]);
+			}
+			add.operations.push_back(parse_expression::expression::precedence[add.level].symbols[2]);
+		}
 		add.arguments.resize(expr.operations[i].operands.size());
-		for (int j = 0; j < (int)expr.operations[i].operands.size(); j++)
-		{
-			if (expr.operations[i].operands[j].isConst())
+		for (int j = 0; j < (int)expr.operations[i].operands.size(); j++) {
+			if (expr.operations[i].operands[j].isConst()) {
 				add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
-			else if (expr.operations[i].operands[j].isVar()) {
+			} else if (expr.operations[i].operands[j].isVar()) {
 				add.arguments[j].literal.valid = true;
 				add.arguments[j].literal = export_net(expr.operations[i].operands[j].index, nets);
-			} else if (expr.operations[i].operands[j].isExpr())
+			} else if (expr.operations[i].operands[j].isExpr()) {
 				add.arguments[j].sub = result[expr.operations[i].operands[j].index];
+			}
 		}
 
 		result.push_back(add);
 	}
 
-	if (result.size() > 0)
+	if (result.size() > 0) {
 		return result.back();
-	else
-	{
+	} else {
 		parse_expression::expression add;
 		add.valid = true;
 		add.arguments.push_back(parse_expression::argument("gnd"));

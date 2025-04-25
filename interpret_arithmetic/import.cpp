@@ -94,17 +94,22 @@ int import_operator(string op, size_t args) {
 
 State import_state(const parse_expression::assignment &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
+	int region = default_id;
+	if (syntax.region != "") {
+		region = atoi(syntax.region.c_str());
+	}
+
 	if (syntax.operation == "+") {
-		return State(import_net(syntax.names[0], nets, default_id, tokens, auto_define), true);
+		return State(import_net(syntax.names[0], nets, region, tokens, auto_define), true);
 	} else if (syntax.operation == "-") {
-		return State(import_net(syntax.names[0], nets, default_id, tokens, auto_define), false);
+		return State(import_net(syntax.names[0], nets, region, tokens, auto_define), false);
 	} else if (syntax.operation == "~") {
-		return State(import_net(syntax.names[0], nets, default_id, tokens, auto_define), Value::X());
+		return State(import_net(syntax.names[0], nets, region, tokens, auto_define), Value::X());
 	} else if (syntax.operation == "=") {
 		State result;
 		int m = min((int)syntax.names.size(), (int)syntax.expressions.size());
 		for (int i = 0; i < m; i++) {
-			int v = import_net(syntax.names[i], nets, default_id, tokens, auto_define);
+			int v = import_net(syntax.names[i], nets, region, tokens, auto_define);
 			if (syntax.expressions[i].operations.empty() and syntax.expressions[i].arguments.size() == 1 and syntax.expressions[i].arguments[0].constant != "") {
 				if (syntax.expressions[i].arguments[0].constant == "gnd") {
 					result.set(v, false);
@@ -138,8 +143,10 @@ State import_state(const parse_expression::assignment &syntax, Netlist nets, int
 
 State import_state(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
-	if (syntax.region != "")
-		default_id = atoi(syntax.region.c_str());
+	int region = default_id;
+	if (syntax.region != "") {
+		region = atoi(syntax.region.c_str());
+	}
 
 	if (syntax.level >= (int)syntax.precedence.size())
 	{
@@ -170,57 +177,59 @@ State import_state(const parse_expression::composition &syntax, Netlist nets, in
 
 	for (int i = 0; i < (int)syntax.literals.size(); i++)
 		if (syntax.literals[i].valid)
-			result &= import_state(syntax.literals[i], nets, default_id, tokens, auto_define);
+			result &= import_state(syntax.literals[i], nets, region, tokens, auto_define);
 
 	for (int i = 0; i < (int)syntax.compositions.size(); i++)
 		if (syntax.compositions[i].valid)
-			result &= import_state(syntax.compositions[i], nets, default_id, tokens, auto_define);
+			result &= import_state(syntax.compositions[i], nets, region, tokens, auto_define);
 
 	return result;
 }
 
+Expression import_argument(const parse_expression::argument &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
+	if (syntax.sub.valid) {
+		return import_expression(syntax.sub, nets, default_id, tokens, auto_define);
+	} else if (syntax.literal.valid) {
+		return Operand::varOf(import_net(syntax.literal, nets, default_id, tokens, auto_define));
+	} else if (syntax.constant == "gnd") {
+		return Operand::boolOf(false);
+	} else if (syntax.constant == "vdd") {
+		return Operand::boolOf(true);
+	} else if (syntax.constant != "") {
+		return Operand::intOf(atoi(syntax.constant.c_str()));
+	}
+	return Operand::X();
+}
 
 Expression import_expression(const parse_expression::expression &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
-	if (syntax.region != "")
-		default_id = atoi(syntax.region.c_str());
+	int region = default_id;
+	if (syntax.region != "") {
+		region = atoi(syntax.region.c_str());
+	}
 
-	if (syntax.level >= (int)syntax.precedence.size())
-	{
-		if (tokens != NULL)
-		{
+	if (syntax.level >= (int)syntax.precedence.size()) {
+		if (tokens != NULL) {
 			tokens->load(&syntax);
 			tokens->error("unrecognized operation", __FILE__, __LINE__);
-		}
-		else
+		} else {
 			error(syntax.to_string(), "unrecognized operation", __FILE__, __LINE__);
+		}
 		return Expression(false);
 	}
 
 	Expression result;
-
-	for (int i = 0; i < (int)syntax.arguments.size(); i++)
-	{
-		if (syntax.arguments[i].sub.valid)
-		{
-			Expression sub = import_expression(syntax.arguments[i].sub, nets, default_id, tokens, auto_define);
-			if (i == 0) {
-				result = sub;
-			} else {
-				result.push(import_operator(syntax.operations[i-1], 2u), sub);
-			}
+	if (syntax.precedence[syntax.level].type == parse_expression::operation_set::call and not syntax.operations.empty()) {
+		vector<Expression> args;
+		for (int i = 0; i < (int)syntax.arguments.size(); i++) {
+			args.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
+			cout << args.back() << endl;
 		}
-		else {
-			Operand sub;
-			if (syntax.arguments[i].literal.valid) {
-				sub = Operand::varOf(import_net(syntax.arguments[i].literal, nets, default_id, tokens, auto_define));
-			} else if (syntax.arguments[i].constant == "gnd") {
-				sub = Operand::boolOf(false);
-			} else if (syntax.arguments[i].constant == "vdd") {
-				sub = Operand::boolOf(true);
-			} else if (syntax.arguments[i].constant != "") {
-				sub = Operand::intOf(atoi(syntax.arguments[i].constant.c_str()));
-			}
+		result.set(Operation::CALL, args);
+		cout << result << endl;
+	} else {
+		for (int i = 0; i < (int)syntax.arguments.size(); i++) {
+			Expression sub = import_argument(syntax.arguments[i], nets, region, tokens, auto_define);
 			if (i == 0) {
 				result = sub;
 			} else {
@@ -246,23 +255,28 @@ Expression import_expression(const parse_expression::expression &syntax, Netlist
 
 Action import_action(const parse_expression::assignment &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
+	int region = default_id;
+	if (syntax.region != "") {
+		region = atoi(syntax.region.c_str());
+	}
+
 	Action result;
 	if (syntax.operation == "+") {
 		if (syntax.names.size() > 0) {
-			result.variable = import_net(syntax.names[0], nets, default_id, tokens, auto_define);
+			result.variable = import_net(syntax.names[0], nets, region, tokens, auto_define);
 		}
 		result.expr = Operand::boolOf(true);
 	} else if (syntax.operation == "-") {
 		if (syntax.names.size() > 0) {
-			result.variable = import_net(syntax.names[0], nets, default_id, tokens, auto_define);
+			result.variable = import_net(syntax.names[0], nets, region, tokens, auto_define);
 		}
 		result.expr = Operand::boolOf(false);
 	} else if (syntax.operation == "=") {
 		if (syntax.names.size() > 0) {
-			result.variable = import_net(syntax.names[0], nets, default_id, tokens, auto_define);
+			result.variable = import_net(syntax.names[0], nets, region, tokens, auto_define);
 		}
 		if (syntax.expressions.size() > 0) {
-			result.expr = import_expression(syntax.expressions[0], nets, default_id, tokens, auto_define);
+			result.expr = import_expression(syntax.expressions[0], nets, region, tokens, auto_define);
 		}
 	}
 
@@ -271,30 +285,35 @@ Action import_action(const parse_expression::assignment &syntax, Netlist nets, i
 
 Parallel import_parallel(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
+	int region = default_id;
+	if (syntax.region != "") {
+		region = atoi(syntax.region.c_str());
+	}
+
 	Parallel result;
 
 	if (syntax.region != "")
-		default_id = ::atoi(syntax.region.c_str());
+		region = ::atoi(syntax.region.c_str());
 
 	if (syntax.level == 0) {
 		if (not syntax.literals.empty()) {
-			result.actions.push_back(import_action(syntax.literals[0], nets, default_id, tokens, auto_define));
+			result.actions.push_back(import_action(syntax.literals[0], nets, region, tokens, auto_define));
 		} else if (not syntax.guards.empty()) {
-			result = Parallel(import_expression(syntax.guards[0], nets, default_id, tokens, auto_define));
+			result = Parallel(import_expression(syntax.guards[0], nets, region, tokens, auto_define));
 		} else if (not syntax.compositions.empty()) {
-			Parallel temp = import_parallel(syntax.compositions[0], nets, default_id, tokens, auto_define);
+			Parallel temp = import_parallel(syntax.compositions[0], nets, region, tokens, auto_define);
 			result.actions.insert(result.actions.end(), temp.actions.begin(), temp.actions.end());
 		}
 	} else {
 		for (int i = 0; i < (int)syntax.literals.size(); i++)
-			result.actions.push_back(import_action(syntax.literals[i], nets, default_id, tokens, auto_define));
+			result.actions.push_back(import_action(syntax.literals[i], nets, region, tokens, auto_define));
 
 		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.actions.push_back(Action(import_expression(syntax.guards[i], nets, default_id, tokens, auto_define)));
+			result.actions.push_back(Action(import_expression(syntax.guards[i], nets, region, tokens, auto_define)));
 
 		for (int i = 0; i < (int)syntax.compositions.size(); i++)
 		{
-			Parallel temp = import_parallel(syntax.compositions[i], nets, default_id, tokens, auto_define);
+			Parallel temp = import_parallel(syntax.compositions[i], nets, region, tokens, auto_define);
 			result.actions.insert(result.actions.end(), temp.actions.begin(), temp.actions.end());
 		}
 	}
@@ -305,25 +324,30 @@ Parallel import_parallel(const parse_expression::composition &syntax, Netlist ne
 
 Choice import_choice(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
+	int region = default_id;
+	if (syntax.region != "") {
+		region = atoi(syntax.region.c_str());
+	}
+
 	Choice result;
 
 	if (syntax.region != "")
-		default_id = ::atoi(syntax.region.c_str());
+		region = ::atoi(syntax.region.c_str());
 
 	if (syntax.level == 0)
 	{
 		for (int i = 0; i < (int)syntax.literals.size(); i++)
 		{
 			result.terms.push_back(Parallel());
-			result.terms.back().actions.push_back(import_action(syntax.literals[i], nets, default_id, tokens, auto_define));
+			result.terms.back().actions.push_back(import_action(syntax.literals[i], nets, region, tokens, auto_define));
 		}
 
 		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.terms.push_back(Parallel(import_expression(syntax.guards[i], nets, default_id, tokens, auto_define)));
+			result.terms.push_back(Parallel(import_expression(syntax.guards[i], nets, region, tokens, auto_define)));
 
 		for (int i = 0; i < (int)syntax.compositions.size(); i++)
 		{
-			Choice temp = import_choice(syntax.compositions[i], nets, default_id, tokens, auto_define);
+			Choice temp = import_choice(syntax.compositions[i], nets, region, tokens, auto_define);
 			result.terms.insert(result.terms.end(), temp.terms.begin(), temp.terms.end());
 		}
 	}
@@ -331,14 +355,14 @@ Choice import_choice(const parse_expression::composition &syntax, Netlist nets, 
 	{
 		result.terms.push_back(Parallel());
 		for (int i = 0; i < (int)syntax.literals.size(); i++)
-			result.terms.back().actions.push_back(import_action(syntax.literals[i], nets, default_id, tokens, auto_define));
+			result.terms.back().actions.push_back(import_action(syntax.literals[i], nets, region, tokens, auto_define));
 
 		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.terms.back().actions.push_back(Action(import_expression(syntax.guards[i], nets, default_id, tokens, auto_define)));
+			result.terms.back().actions.push_back(Action(import_expression(syntax.guards[i], nets, region, tokens, auto_define)));
 
 		for (int i = 0; i < (int)syntax.compositions.size(); i++)
 		{
-			Choice temp = import_choice(syntax.compositions[i], nets, default_id, tokens, auto_define);
+			Choice temp = import_choice(syntax.compositions[i], nets, region, tokens, auto_define);
 			for (int j = 0; j < (int)result.terms.size(); j++)
 				for (int k = 0; k < (int)temp.terms.size(); k++)
 					result.terms[j].actions.insert(result.terms[j].actions.end(), temp.terms[k].actions.begin(), temp.terms[k].actions.end());

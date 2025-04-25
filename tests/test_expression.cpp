@@ -212,7 +212,7 @@ TEST(ExpressionParser, GndVdd) {
 
 TEST(ExpressionParser, DifferentRegions) {
 	// Test expressions with region specifications
-	string test_code = "a(1) & b(2) | c(3)";
+	string test_code = "a'1 & b'2 | c'3";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -221,16 +221,38 @@ TEST(ExpressionParser, DifferentRegions) {
 	tokens.insert("regions", test_code);
 
 	VariableSet v;
+
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	cout << expr << endl;
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_TRUE(out.to_string().find("a") != string::npos);
-	EXPECT_TRUE(out.to_string().find("b") != string::npos);
-	EXPECT_TRUE(out.to_string().find("c") != string::npos);
+	EXPECT_EQ(out.to_string(), "a'1&b'2|c'3");
 }
 
- 
+TEST(ExpressionParser, Function) {
+	string test_code = "x + myfunc(a, b, c)";
+	
+	tokenizer tokens;
+	tokens.register_token<parse::block_comment>(false);
+	tokens.register_token<parse::line_comment>(false);
+	expression::register_syntax(tokens);
+	tokens.insert("function", test_code);
+
+	VariableSet v;
+	
+	expression in(tokens);
+	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	cout << expr << endl;
+	expr.minimize();
+	cout << expr << endl;
+	expression out = export_expression(expr, v);
+
+	EXPECT_TRUE(tokens.is_clean());
+	EXPECT_TRUE(out.valid);
+	EXPECT_EQ(out.to_string(), "x+myfunc(a,b,c)");
+}
+
