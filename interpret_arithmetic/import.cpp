@@ -223,10 +223,8 @@ Expression import_expression(const parse_expression::expression &syntax, Netlist
 		vector<Expression> args;
 		for (int i = 0; i < (int)syntax.arguments.size(); i++) {
 			args.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
-			cout << args.back() << endl;
 		}
 		result.set(Operation::CALL, args);
-		cout << result << endl;
 	} else {
 		for (int i = 0; i < (int)syntax.arguments.size(); i++) {
 			Expression sub = import_argument(syntax.arguments[i], nets, region, tokens, auto_define);
