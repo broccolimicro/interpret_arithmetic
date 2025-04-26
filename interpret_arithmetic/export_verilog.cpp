@@ -1,29 +1,6 @@
-/*
- * export.cpp
- *
- *  Created on: Feb 6, 2015
- *      Author: nbingham
- */
-
 #include "export_verilog.h"
 
 namespace parse_verilog {
-
-variable_name export_variable_name(int variable, arithmetic::ConstNetlist nets)
-{
-	auto net = nets.netAt(variable);
-
-	variable_name result;
-	result.valid = true;
-	member_name name;
-	name.valid = true;
-	name.name = net.first;
-	result.names.push_back(name);
-	if (net.second != 0) {
-		result.region = ::to_string(net.second);
-	}
-	return result;
-}
 
 string export_value(const arithmetic::Value &v) {
 	if (v.type == arithmetic::Value::BOOL) {
@@ -52,7 +29,7 @@ expression export_expression(const arithmetic::Value &v) {
 	return result;	
 }
 
-expression export_expression(const arithmetic::State &s, arithmetic::ConstNetlist nets)
+expression export_expression(const arithmetic::State &s, ucs::ConstNetlist nets)
 {
 	vector<expression> result;
 
@@ -65,17 +42,17 @@ expression export_expression(const arithmetic::State &s, arithmetic::ConstNetlis
 				add.operations.push_back("~");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
-				add.arguments[0].literal = export_variable_name(i, nets);
+				add.arguments[0].literal = nets.netAt(i);
 			} else if (s.values[i].isValid()) {
 				add.operations.push_back("");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
-				add.arguments[0].literal = export_variable_name(i, nets);
+				add.arguments[0].literal = nets.netAt(i);
 			} else {
 				add.operations.push_back("==");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(2);
-				add.arguments[0].literal = export_variable_name(i, nets);
+				add.arguments[0].literal = nets.netAt(i);
 				add.arguments[1].constant = export_value(s.values[i]);
 			}
 
@@ -159,7 +136,7 @@ string export_operation(int op) {
 	return "";
 }
 
-expression export_expression(const arithmetic::Expression &expr, arithmetic::ConstNetlist nets)
+expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets)
 {
 	vector<expression> result;
 
@@ -175,7 +152,7 @@ expression export_expression(const arithmetic::Expression &expr, arithmetic::Con
 			if (expr.operations[i].operands[j].isConst())
 				add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
 			else if (expr.operations[i].operands[j].isVar())
-				add.arguments[j].literal = export_variable_name(expr.operations[i].operands[j].index, nets);
+				add.arguments[j].literal = nets.netAt(expr.operations[i].operands[j].index);
 			else if (expr.operations[i].operands[j].isExpr())
 				add.arguments[j].sub = result[expr.operations[i].operands[j].index];
 		}

@@ -8,36 +8,36 @@ using namespace std;
 
 // Helper class to implement the Netlist interface for testing
 struct VariableSet {
-	vector<pair<string, int> > vars;
+	vector<ucs::Net> vars;
 
-	int netIndex(string name, int region) const {
+	int netIndex(ucs::Net name) const {
 		for (int i = 0; i < (int)vars.size(); i++) {
-			if (vars[i].first == name and vars[i].second == region) {
+			if (vars[i] == name) {
 				return i;
 			}
 		}
 		return -1;
 	}
 
-	int netIndex(string name, int region, bool define) {
+	int netIndex(ucs::Net name, bool define) {
 		bool found = false;
 		for (int i = 0; i < (int)vars.size(); i++) {
-			if (vars[i].first == name) {
+			if (vars[i].fields == name.fields) {
 				found = true;
-				if (vars[i].second == region) {
+				if (vars[i].region == name.region) {
 					return i;
 				}
 			}
 		}
 
 		if (found or define) {
-			vars.push_back({name, region});
+			vars.push_back(name);
 			return (int)vars.size()-1;
 		}
 		return -1;
 	}
 
-	pair<string, int> netAt(int uid) const {
+	ucs::Net netAt(int uid) const {
 		return vars[uid];
 	}
 
@@ -46,34 +46,3 @@ struct VariableSet {
 	}
 };
 
-// Non-defining variable set for testing undefined nets
-struct NonDefiningVariableSet {
-	vector<string> vars;
-
-	int netIndex(string name, int region) const {
-		for (int i = 0; i < (int)vars.size(); i++) {
-			if (vars[i] == name) {
-				return i;
-			}
-		}
-		return -1;
-	}
-
-	int netIndex(string name, int region, bool define) {
-		// Always return -1 for undefined variables, regardless of define flag
-		for (int i = 0; i < (int)vars.size(); i++) {
-			if (vars[i] == name) {
-				return i;
-			}
-		}
-		return -1;
-	}
-
-	pair<string, int> netAt(int uid) const {
-		return {vars[uid], 0};
-	}
-
-	int netCount() const {
-		return (int)vars.size();
-	}
-};

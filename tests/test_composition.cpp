@@ -9,7 +9,6 @@
 
 #include <interpret_arithmetic/import.h>
 #include <interpret_arithmetic/export.h>
-#include <interpret_arithmetic/interface.h>
 #include "test_helpers.h"
 
 using namespace std;

@@ -1,15 +1,8 @@
-/*
- * import.cpp
- *
- *  Created on: Feb 6, 2015
- *      Author: nbingham
- */
-
 #include "import.h"
 
 namespace arithmetic {
 
-int import_net(const parse_ucs::variable_name &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
+int import_net(const parse_ucs::variable_name &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	int region = default_id;
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
@@ -22,7 +15,7 @@ int import_net(const parse_ucs::variable_name &syntax, Netlist nets, int default
 		name += "." + syntax.names[i].to_string("");
 	}
 
-	int uid = nets.netIndex(name, region, auto_define);
+	int uid = nets.netIndex(ucs::Net(name, region), auto_define);
 	if (uid < 0) {
 		if (tokens != NULL) {
 			tokens->load(&syntax);
@@ -92,7 +85,7 @@ int import_operator(string op, size_t args) {
 	return -1;
 }
 
-State import_state(const parse_expression::assignment &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
+State import_state(const parse_expression::assignment &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
 	int region = default_id;
 	if (syntax.region != "") {
@@ -141,7 +134,7 @@ State import_state(const parse_expression::assignment &syntax, Netlist nets, int
 	}
 }
 
-State import_state(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
+State import_state(const parse_expression::composition &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
 	int region = default_id;
 	if (syntax.region != "") {
@@ -186,7 +179,7 @@ State import_state(const parse_expression::composition &syntax, Netlist nets, in
 	return result;
 }
 
-Expression import_argument(const parse_expression::argument &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
+Expression import_argument(const parse_expression::argument &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	if (syntax.sub.valid) {
 		return import_expression(syntax.sub, nets, default_id, tokens, auto_define);
 	} else if (syntax.literal.valid) {
@@ -201,7 +194,7 @@ Expression import_argument(const parse_expression::argument &syntax, Netlist net
 	return Operand::X();
 }
 
-Expression import_expression(const parse_expression::expression &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
+Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
 	int region = default_id;
 	if (syntax.region != "") {
@@ -251,7 +244,7 @@ Expression import_expression(const parse_expression::expression &syntax, Netlist
 	return result;
 }
 
-Action import_action(const parse_expression::assignment &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
+Action import_action(const parse_expression::assignment &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
 	int region = default_id;
 	if (syntax.region != "") {
@@ -281,7 +274,7 @@ Action import_action(const parse_expression::assignment &syntax, Netlist nets, i
 	return result;
 }
 
-Parallel import_parallel(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
+Parallel import_parallel(const parse_expression::composition &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
 	int region = default_id;
 	if (syntax.region != "") {
@@ -320,7 +313,7 @@ Parallel import_parallel(const parse_expression::composition &syntax, Netlist ne
 }
 
 
-Choice import_choice(const parse_expression::composition &syntax, Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
+Choice import_choice(const parse_expression::composition &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
 {
 	int region = default_id;
 	if (syntax.region != "") {

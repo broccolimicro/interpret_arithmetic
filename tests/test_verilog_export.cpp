@@ -8,7 +8,6 @@
 
 #include <interpret_arithmetic/import.h>
 #include <interpret_arithmetic/export_verilog.h>
-#include <interpret_arithmetic/interface.h>
 #include "test_helpers.h"
 
 using namespace std;
@@ -170,14 +169,14 @@ TEST(VerilogExportParser, ExportVariableName) {
 	VariableSet v;
 	
 	// Add some variables
-	v.netIndex("simple", 0, true);         // simple name
-	v.netIndex("complex.name", 0, true);   // hierarchical name
-	v.netIndex("array[0]", 0, true);       // array name
+	v.netIndex("simple", true);         // simple name
+	v.netIndex("complex.name", true);   // hierarchical name
+	v.netIndex("array[0]", true);       // array name
 	
 	// Export to Verilog variable names
-	parse_verilog::variable_name var0 = parse_verilog::export_variable_name(0, v);
-	parse_verilog::variable_name var1 = parse_verilog::export_variable_name(1, v);
-	parse_verilog::variable_name var2 = parse_verilog::export_variable_name(2, v);
+	parse_verilog::variable_name var0 = v.netAt(0);
+	parse_verilog::variable_name var1 = v.netAt(1);
+	parse_verilog::variable_name var2 = v.netAt(2);
 	
 	EXPECT_TRUE(var0.valid);
 	EXPECT_TRUE(var1.valid);
