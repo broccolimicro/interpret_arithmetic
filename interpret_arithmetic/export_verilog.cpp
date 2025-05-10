@@ -42,17 +42,17 @@ expression export_expression(const arithmetic::State &s, ucs::ConstNetlist nets)
 				add.operations.push_back("~");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
-				add.arguments[0].literal = nets.netAt(i);
+				add.arguments[0].literal = ucs::Net(nets.netAt(i));
 			} else if (s.values[i].isValid()) {
 				add.operations.push_back("");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
-				add.arguments[0].literal = nets.netAt(i);
+				add.arguments[0].literal = ucs::Net(nets.netAt(i));
 			} else {
 				add.operations.push_back("==");
 				add.level = expression::get_level(add.operations[0]);
 				add.arguments.resize(2);
-				add.arguments[0].literal = nets.netAt(i);
+				add.arguments[0].literal = ucs::Net(nets.netAt(i));
 				add.arguments[1].constant = export_value(s.values[i]);
 			}
 
@@ -152,7 +152,7 @@ expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetli
 			if (expr.operations[i].operands[j].isConst())
 				add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
 			else if (expr.operations[i].operands[j].isVar())
-				add.arguments[j].literal = nets.netAt(expr.operations[i].operands[j].index);
+				add.arguments[j].literal = ucs::Net(nets.netAt(expr.operations[i].operands[j].index));
 			else if (expr.operations[i].operands[j].isExpr())
 				add.arguments[j].sub = result[expr.operations[i].operands[j].index];
 		}

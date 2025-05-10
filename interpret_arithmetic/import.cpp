@@ -15,7 +15,7 @@ int import_net(const parse_ucs::variable_name &syntax, ucs::Netlist nets, int de
 		name += "." + syntax.names[i].to_string("");
 	}
 
-	int uid = nets.netIndex(ucs::Net(name, region), auto_define);
+	int uid = nets.netIndex(name+"'"+::to_string(region), auto_define);
 	if (uid < 0) {
 		if (tokens != NULL) {
 			tokens->load(&syntax);

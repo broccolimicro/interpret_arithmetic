@@ -102,19 +102,19 @@ parse_expression::expression export_expression(const State &s, ucs::ConstNetlist
 				add.level = parse_expression::expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
 				add.arguments[0].literal.valid = true;
-				add.arguments[0].literal = nets.netAt(i);
+				add.arguments[0].literal = ucs::Net(nets.netAt(i));
 			} else if (s.values[i].isValid()) {
 				add.operations.push_back("");
 				add.level = parse_expression::expression::get_level(add.operations[0]);
 				add.arguments.resize(1);
 				add.arguments[0].literal.valid = true;
-				add.arguments[0].literal = nets.netAt(i);
+				add.arguments[0].literal = ucs::Net(nets.netAt(i));
 			} else {
 				add.operations.push_back("==");
 				add.level = parse_expression::expression::get_level(add.operations[0]);
 				add.arguments.resize(2);
 				add.arguments[0].literal.valid = true;
-				add.arguments[0].literal = nets.netAt(i);
+				add.arguments[0].literal = ucs::Net(nets.netAt(i));
 				add.arguments[1].constant = export_value(s.values[i]);
 			}
 
@@ -154,7 +154,7 @@ parse_expression::composition export_composition(const State &s, ucs::ConstNetli
 		if (not s.values[i].isUnknown()) {
 			parse_expression::assignment assign;
 			assign.valid = true;
-			assign.names.push_back(nets.netAt(i));
+			assign.names.push_back(ucs::Net(nets.netAt(i)));
 			if (s.values[i].isNeutral()) {
 				assign.operation = "-";
 			} else if (s.values[i].isValid()) {
@@ -204,7 +204,7 @@ parse_expression::expression export_expression(const Expression &expr, ucs::Cons
 				add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
 			} else if (expr.operations[i].operands[j].isVar()) {
 				add.arguments[j].literal.valid = true;
-				add.arguments[j].literal = nets.netAt(expr.operations[i].operands[j].index);
+				add.arguments[j].literal = ucs::Net(nets.netAt(expr.operations[i].operands[j].index));
 			} else if (expr.operations[i].operands[j].isExpr()) {
 				add.arguments[j].sub = result[expr.operations[i].operands[j].index];
 			}
@@ -229,7 +229,7 @@ parse_expression::assignment export_assignment(const Action &expr, ucs::ConstNet
 	result.valid = true;
 
 	if (expr.variable != -1)
-		result.names.push_back(nets.netAt(expr.variable));
+		result.names.push_back(ucs::Net(nets.netAt(expr.variable)));
 
 	if (expr.expr.operations.size() > 0)
 		result.expressions.push_back(export_expression(expr.expr, nets));

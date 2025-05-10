@@ -174,9 +174,9 @@ TEST(VerilogExportParser, ExportVariableName) {
 	v.netIndex("array[0]", true);       // array name
 	
 	// Export to Verilog variable names
-	parse_verilog::variable_name var0 = v.netAt(0);
-	parse_verilog::variable_name var1 = v.netAt(1);
-	parse_verilog::variable_name var2 = v.netAt(2);
+	parse_verilog::variable_name var0 = ucs::Net(v.netAt(0));
+	parse_verilog::variable_name var1 = ucs::Net(v.netAt(1));
+	parse_verilog::variable_name var2 = ucs::Net(v.netAt(2));
 	
 	EXPECT_TRUE(var0.valid);
 	EXPECT_TRUE(var1.valid);

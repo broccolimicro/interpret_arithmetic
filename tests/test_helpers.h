@@ -8,37 +8,52 @@ using namespace std;
 
 // Helper class to implement the Netlist interface for testing
 struct VariableSet {
-	vector<ucs::Net> vars;
+	vector<pair<string, int> > vars;
 
-	int netIndex(ucs::Net name) const {
+	int netIndex(string name) const {
+		int region = 0;
+		size_t tic = name.rfind('\'');
+		if (tic != string::npos) {
+			region = std::stoi(name.substr(tic+1));
+			name = name.substr(0, tic);
+		}
+
 		for (int i = 0; i < (int)vars.size(); i++) {
-			if (vars[i] == name) {
+			if (vars[i].first == name and vars[i].second == region) {
 				return i;
 			}
 		}
 		return -1;
 	}
 
-	int netIndex(ucs::Net name, bool define) {
+	int netIndex(string name, bool define) {
+		int region = 0;
+		size_t tic = name.rfind('\'');
+		if (tic != string::npos) {
+			region = std::stoi(name.substr(tic+1));
+			name = name.substr(0, tic);
+		}
+
 		bool found = false;
 		for (int i = 0; i < (int)vars.size(); i++) {
-			if (vars[i].fields == name.fields) {
+			if (vars[i].first == name) {
 				found = true;
-				if (vars[i].region == name.region) {
+				if (vars[i].second == region) {
 					return i;
 				}
 			}
 		}
 
 		if (found or define) {
-			vars.push_back(name);
+			vars.push_back({name, region});
 			return (int)vars.size()-1;
 		}
 		return -1;
 	}
 
-	ucs::Net netAt(int uid) const {
-		return vars[uid];
+	string netAt(int uid) const {
+		return vars[uid].first + (vars[uid].second != 0 ?
+			"'"+::to_string(vars[uid].second) : "");
 	}
 
 	int netCount() const {
