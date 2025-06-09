@@ -76,8 +76,6 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
 	composition out = export_composition(state, v);
 
-	cout << ::to_string(state.values) << endl;
-
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
 	EXPECT_EQ(out.to_string(), "c=1");
@@ -85,7 +83,7 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 
 TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 	// Test composition with gnd and vdd
-	string test_code = "d = vdd";
+	string test_code = "d = true";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -104,7 +102,7 @@ TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 	EXPECT_EQ(out.to_string(), "d+");
 	
 	// Test with gnd
-	test_code = "e = gnd";
+	test_code = "e = false";
 	
 	tokenizer tokens2;
 	tokens2.register_token<parse::block_comment>(false);

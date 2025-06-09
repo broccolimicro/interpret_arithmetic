@@ -1,86 +1,127 @@
 #include "import.h"
+#include "support.h"
 
 namespace arithmetic {
 
-int import_net(const parse_ucs::variable_name &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
-	int region = default_id;
-	if (syntax.region != "") {
-		region = atoi(syntax.region.c_str());
-	}
-
-	string name;
-	if (syntax.names.size() > 0) {
-		name = syntax.names[0].to_string("");
-	} for (int i = 1; i < (int)syntax.names.size(); i++) {
-		name += "." + syntax.names[i].to_string("");
-	}
-
-	int uid = nets.netIndex(name+"'"+::to_string(region), auto_define);
-	if (uid < 0) {
-		if (tokens != NULL) {
+string import_constant(const parse_expression::expression &syntax, tokenizer *tokens) {
+	if (not syntax.valid or syntax.level < 0 or syntax.arguments.empty()) {
+		if (tokens != nullptr) {
 			tokens->load(&syntax);
-			tokens->error("undefined net '" + name + "'", __FILE__, __LINE__);
+			tokens->internal("invalid expression", __FILE__, __LINE__);
 		} else {
-			error("", "undefined net '" + name + "'", __FILE__, __LINE__);
+			internal("", "invaid expression", __FILE__, __LINE__);
+		}
+		return "0";
+	}
+
+	string result = "";
+	if (syntax.operators.empty()) {
+		result += import_constant(syntax.arguments[0], tokens);
+	} else {
+		if (tokens != nullptr) {
+			tokens->load(&syntax);
+			tokens->internal("sub expressions in constants not supported", __FILE__, __LINE__);
+		} else {
+			internal("", "sub expressions in constants not supported", __FILE__, __LINE__);
+		}
+		return "0";
+	}
+
+	return result;
+}
+
+string import_constant(const parse_expression::argument &syntax, tokenizer *tokens) {
+	if (syntax.sub.valid) {
+		return import_constant(syntax.sub, tokens);
+	} else if (not syntax.literal.empty()) {
+		internal(syntax.literal, "expected constant-valued expression", __FILE__, __LINE__);
+		return "0";
+	}
+	return syntax.constant;
+}
+
+string import_net_name(const parse_expression::argument &syntax, tokenizer *tokens) {
+	if (syntax.sub.valid) {
+		return import_net_name(syntax.sub, tokens);
+	} else if (not syntax.literal.empty()) {
+		return syntax.literal;
+	}
+	internal(syntax.constant, "expected instance", __FILE__, __LINE__);
+	return "_";
+}
+
+string import_net_name(const parse_expression::expression &syntax, tokenizer *tokens) {
+	if (not syntax.valid or syntax.level < 0 or syntax.arguments.empty()) {
+		if (tokens != nullptr) {
+			tokens->load(&syntax);
+			tokens->internal("invalid expression", __FILE__, __LINE__);
+		} else {
+			internal("", "invaid expression", __FILE__, __LINE__);
+		}
+		return "_";
+	}
+
+	string result = "";
+	if (syntax.operators.empty()) {
+		result += import_net_name(syntax.arguments[0], tokens);
+	} else if (syntax.precedence[syntax.level].type == parse_expression::operation_set::MODIFIER
+		and syntax.symbol(syntax.operators[0]).trigger == "[") {
+		result += import_net_name(syntax.arguments[0], tokens) + syntax.symbol(syntax.operators[0]).trigger;
+		for (int i = 1; i < (int)syntax.arguments.size(); i++) {
+			if (i != 1) {
+				result += syntax.symbol(syntax.operators[0]).infix;
+			}
+			result += import_constant(syntax.arguments[i], tokens);
+		}
+		result += syntax.symbol(syntax.operators[0]).postfix;
+	} else if (syntax.precedence[syntax.level].type == parse_expression::operation_set::BINARY
+		and syntax.symbol(syntax.operators[0]).infix == ".") {
+		for (int i = 0; i < (int)syntax.arguments.size(); i++) {
+			if (i != 0) {
+				result += syntax.symbol(syntax.operators[i]).infix;
+			}
+			result += import_net_name(syntax.arguments[i], tokens);
+		}
+	} else {
+		if (tokens != nullptr) {
+			tokens->load(&syntax);
+			tokens->internal("sub expressions in variable names not supported", __FILE__, __LINE__);
+		} else {
+			internal("", "sub expressions in variabe names not supported", __FILE__, __LINE__);
+		}
+		return "_";
+	}
+
+	return result;
+}
+
+int import_net(string syntax, ucs::Netlist nets, tokenizer *tokens, bool auto_define) {
+	int uid = nets.netIndex(syntax, auto_define);
+	if (uid < 0) {
+		if (tokens != nullptr) {
+			tokens->error("undefined net '" + syntax + "'", __FILE__, __LINE__);
+		} else {
+			error("", "undefined net '" + syntax + "'", __FILE__, __LINE__);
 		}
 	}
 
 	return uid;
 }
 
-int import_operator(string op, size_t args) {
-	if (args == 1u and op == "!") {
-		return Operation::BITWISE_NOT;
-	} else if (args == 1u and op == "+") {
-		return Operation::IDENTITY;
-	} else if (args == 1u and op == "-") {
-		return Operation::NEGATION;
-	} else if (args == 1u and op == "(bool)") {
-		return Operation::VALIDITY;
-	} else if (args == 1u and op == "~") {
-		return Operation::BOOLEAN_NOT;
-	} else if (args == 1u and op == "$") {
-		return Operation::INVERSE;
-	} else if (args >= 2u and op == "||") {
-		return Operation::BITWISE_OR;
-	} else if (args >= 2u and op == "&&") {
-		return Operation::BITWISE_AND;
-	} else if (args >= 2u and op == "^^") {
-		return Operation::BITWISE_XOR;
-	} else if (args >= 2u and op == "==") {
-		return Operation::EQUAL;
-	} else if (args >= 2u and op == "!=") {
-		return Operation::NOT_EQUAL;
-	} else if (args >= 2u and op == "<") {
-		return Operation::LESS;
-	} else if (args >= 2u and op == ">") {
-		return Operation::GREATER;
-	} else if (args >= 2u and op == "<=") {
-		return Operation::LESS_EQUAL;
-	} else if (args >= 2u and op == ">=") {
-		return Operation::GREATER_EQUAL;
-	} else if (args >= 2u and op == "<<") {
-		return Operation::SHIFT_LEFT;
-	} else if (args >= 2u and op == ">>") {
-		return Operation::SHIFT_RIGHT;
-	} else if (args >= 2u and op == "+") {
-		return Operation::ADD;
-	} else if (args >= 2u and op == "-") {
-		return Operation::SUBTRACT;
-	} else if (args >= 2u and op == "*") {
-		return Operation::MULTIPLY;
-	} else if (args >= 2u and op == "/") {
-		return Operation::DIVIDE;
-	} else if (args >= 2u and op == "%") {
-		return Operation::MOD;
-	} else if (args >= 2u and op == "|") {
-		return Operation::BOOLEAN_OR;
-	} else if (args >= 2u and op == "&") {
-		return Operation::BOOLEAN_AND;
-	} else if (args >= 2u and op == "^") {
-		return Operation::BOOLEAN_XOR;
-	} else if (args >= 2u and op == ",") {
-		return Operation::ARRAY;
+int import_net(const parse_expression::expression &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
+	string name = import_net_name(syntax, tokens);
+	if (default_id != 0) {
+		name += "'" + ::to_string(default_id);
+	}
+
+	return import_net(name, nets, tokens, auto_define);
+}
+
+int import_operator(parse_expression::operation op) {
+	for (int i = 0; i < (int)Operation::operators.size(); i++) {
+		if (areSame(Operation::operators[i], op)) {
+			return i;
+		}
 	}
 	return -1;
 }
@@ -93,32 +134,29 @@ State import_state(const parse_expression::assignment &syntax, ucs::Netlist nets
 	}
 
 	if (syntax.operation == "+") {
-		return State(import_net(syntax.names[0], nets, region, tokens, auto_define), true);
+		return State(import_net(syntax.lvalue[0], nets, region, tokens, auto_define), true);
 	} else if (syntax.operation == "-") {
-		return State(import_net(syntax.names[0], nets, region, tokens, auto_define), false);
+		return State(import_net(syntax.lvalue[0], nets, region, tokens, auto_define), false);
 	} else if (syntax.operation == "~") {
-		return State(import_net(syntax.names[0], nets, region, tokens, auto_define), Value::X());
+		return State(import_net(syntax.lvalue[0], nets, region, tokens, auto_define), Value::X());
 	} else if (syntax.operation == "=") {
 		State result;
-		int m = min((int)syntax.names.size(), (int)syntax.expressions.size());
-		for (int i = 0; i < m; i++) {
-			int v = import_net(syntax.names[i], nets, region, tokens, auto_define);
-			if (syntax.expressions[i].operations.empty() and syntax.expressions[i].arguments.size() == 1 and syntax.expressions[i].arguments[0].constant != "") {
-				if (syntax.expressions[i].arguments[0].constant == "gnd") {
-					result.set(v, false);
-				} else if (syntax.expressions[i].arguments[0].constant == "vdd") {
-					result.set(v, true);
-				} else if (syntax.expressions[i].arguments[0].constant != "") {
-					result.set(v, atoi(syntax.expressions[i].arguments[0].constant.c_str()));
+		int v = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
+		if (syntax.rvalue.operators.empty() and syntax.rvalue.arguments.size() == 1 and syntax.rvalue.arguments[0].constant != "") {
+			if (syntax.rvalue.arguments[0].constant == "false") {
+				result.set(v, false);
+			} else if (syntax.rvalue.arguments[0].constant == "true") {
+				result.set(v, true);
+			} else if (syntax.rvalue.arguments[0].constant != "") {
+				result.set(v, atoi(syntax.rvalue.arguments[0].constant.c_str()));
+			} else {
+				if (tokens != NULL) {
+					tokens->load(&syntax.rvalue);
+					tokens->error("unsupported expression", __FILE__, __LINE__);
 				} else {
-					if (tokens != NULL) {
-						tokens->load(&syntax.expressions[i]);
-						tokens->error("unsupported expression", __FILE__, __LINE__);
-					} else {
-						error(syntax.expressions[i].to_string(), "unsupported expression", __FILE__, __LINE__);
-					}
-					return State();
+					error(syntax.rvalue.to_string(), "unsupported expression", __FILE__, __LINE__);
 				}
+				return State();
 			}
 		}
 		return result;
@@ -182,11 +220,15 @@ State import_state(const parse_expression::composition &syntax, ucs::Netlist net
 Expression import_argument(const parse_expression::argument &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	if (syntax.sub.valid) {
 		return import_expression(syntax.sub, nets, default_id, tokens, auto_define);
-	} else if (syntax.literal.valid) {
-		return Operand::varOf(import_net(syntax.literal, nets, default_id, tokens, auto_define));
-	} else if (syntax.constant == "gnd") {
+	} else if (syntax.literal != "") {
+		string name = syntax.literal;
+		if (default_id != 0) {
+			name += "'" + ::to_string(default_id);
+		}
+		return Operand::varOf(import_net(name, nets, tokens, auto_define));
+	} else if (syntax.constant == "false") {
 		return Operand::boolOf(false);
-	} else if (syntax.constant == "vdd") {
+	} else if (syntax.constant == "true") {
 		return Operand::boolOf(true);
 	} else if (syntax.constant != "") {
 		return Operand::intOf(atoi(syntax.constant.c_str()));
@@ -194,12 +236,8 @@ Expression import_argument(const parse_expression::argument &syntax, ucs::Netlis
 	return Operand::X();
 }
 
-Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
-{
+Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	int region = default_id;
-	if (syntax.region != "") {
-		region = atoi(syntax.region.c_str());
-	}
 
 	if (syntax.level >= (int)syntax.precedence.size()) {
 		if (tokens != NULL) {
@@ -211,34 +249,59 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		return Expression(false);
 	}
 
+	bool err = false;
 	Expression result;
-	if (syntax.precedence[syntax.level].type == parse_expression::operation_set::call and not syntax.operations.empty()) {
-		vector<Expression> args;
-		for (int i = 0; i < (int)syntax.arguments.size(); i++) {
-			args.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
-		}
-		result.set(Operation::CALL, args);
+	if (not syntax.operators.empty()
+		and parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::BINARY
+		and syntax.symbol(syntax.operators.back()).is("", "", "'", "")) {
+		string cnst = import_constant(syntax.arguments.back(), tokens);
+		result = import_argument(syntax.arguments[0], nets, atoi(cnst.c_str()), tokens, auto_define);
 	} else {
-		for (int i = 0; i < (int)syntax.arguments.size(); i++) {
+		for (int i = 0; i < (int)syntax.arguments.size() and not err; i++) {
 			Expression sub = import_argument(syntax.arguments[i], nets, region, tokens, auto_define);
 			if (i == 0) {
 				result = sub;
 			} else {
-				result.push(import_operator(syntax.operations[i-1], 2u), sub);
+				int op = import_operator(syntax.symbol(syntax.operators[i-1]));
+				if (op < 0) {
+					err = true;
+				} else {
+					result.push(op, sub);
+				}
+			}
+		}
+
+		if (syntax.arguments.size() == 1) {
+			if (parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::UNARY) {
+				for (int i = (int)syntax.operators.size()-1; i >= 0 and not err; i--) {
+					int op = import_operator(syntax.symbol(syntax.operators[i]));
+					if (op < 0) {
+						err = true;
+					} else {
+						result.push(op);
+					}
+				}
+			} else {
+				for (int i = 0; i < (int)syntax.operators.size() and not err; i++) {
+					int op = import_operator(syntax.symbol(syntax.operators[i]));
+					if (op < 0) {
+						err = true;
+					} else {
+						result.push(op);
+					}
+				}
 			}
 		}
 	}
 
-	if (syntax.arguments.size() == 1) {
-		if (parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::left_unary) {
-			for (int i = (int)syntax.operations.size()-1; i >= 0; i--) {
-				result.push(import_operator(syntax.operations[i], 1u));
-			}
+	if (err) {
+		if (tokens != NULL) {
+			tokens->load(&syntax);
+			tokens->error("unrecognized operator", __FILE__, __LINE__);
 		} else {
-			for (int i = 0; i < (int)syntax.operations.size(); i++) {
-				result.push(import_operator(syntax.operations[i], 1u));
-			}
+			error(syntax.to_string(), "unrecognized operator", __FILE__, __LINE__);
 		}
+		return Expression(false);
 	}
 
 	return result;
@@ -253,21 +316,21 @@ Action import_action(const parse_expression::assignment &syntax, ucs::Netlist ne
 
 	Action result;
 	if (syntax.operation == "+") {
-		if (syntax.names.size() > 0) {
-			result.variable = import_net(syntax.names[0], nets, region, tokens, auto_define);
+		if (syntax.lvalue.size() > 0) {
+			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
 		result.expr = Operand::boolOf(true);
 	} else if (syntax.operation == "-") {
-		if (syntax.names.size() > 0) {
-			result.variable = import_net(syntax.names[0], nets, region, tokens, auto_define);
+		if (syntax.lvalue.size() > 0) {
+			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
 		result.expr = Operand::boolOf(false);
 	} else if (syntax.operation == "=") {
-		if (syntax.names.size() > 0) {
-			result.variable = import_net(syntax.names[0], nets, region, tokens, auto_define);
+		if (syntax.lvalue.size() > 0) {
+			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
-		if (syntax.expressions.size() > 0) {
-			result.expr = import_expression(syntax.expressions[0], nets, region, tokens, auto_define);
+		if (syntax.rvalue.valid) {
+			result.expr = import_expression(syntax.rvalue, nets, region, tokens, auto_define);
 		}
 	}
 

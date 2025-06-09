@@ -1,72 +1,117 @@
 #include "export.h"
+#include "support.h"
 
 namespace arithmetic {
 
-string export_operator(int op) {
-	if (op == Operation::BITWISE_NOT) {
-		return "!";
-	} else if (op == Operation::IDENTITY) {
-		return "+";
-	} else if (op == Operation::NEGATION) {
-		return "-";
-	} else if (op == Operation::VALIDITY) {
-		return "(bool)";
-	} else if (op == Operation::BOOLEAN_NOT) {
-		return "~";
-	} else if (op == Operation::INVERSE) {
-		return "1/";
-	} else if (op == Operation::BITWISE_OR) {
-		return "||";
-	} else if (op == Operation::BITWISE_AND) {
-		return "&&";
-	} else if (op == Operation::BITWISE_XOR) {
-		return "^^";
-	} else if (op == Operation::EQUAL) {
-		return "==";
-	} else if (op == Operation::NOT_EQUAL) {
-		return "~=";
-	} else if (op == Operation::LESS) {
-		return "<";
-	} else if (op == Operation::GREATER) {
-		return ">";
-	} else if (op == Operation::LESS_EQUAL) {
-		return "<=";
-	} else if (op == Operation::GREATER_EQUAL) {
-		return ">=";
-	} else if (op == Operation::SHIFT_LEFT) {
-		return "<<";
-	} else if (op == Operation::SHIFT_RIGHT) {
-		return ">>";
-	} else if (op == Operation::ADD) {
-		return "+";
-	} else if (op == Operation::SUBTRACT) {
-		return "-";
-	} else if (op == Operation::MULTIPLY) {
-		return "*";
-	} else if (op == Operation::DIVIDE) {
-		return "/";
-	} else if (op == Operation::MOD) {
-		return "%";
-	} else if (op == Operation::BOOLEAN_OR) {
-		return "|";
-	} else if (op == Operation::BOOLEAN_AND) {
-		return "&";
-	} else if (op == Operation::BOOLEAN_XOR) {
-		return "^";
-	} else if (op == Operation::ARRAY) {
-		return ",";
-	} else if (op == Operation::CALL) {
-		return "(";
+parse_expression::expression export_field(string str) {
+	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::MODIFIER, "", "[", ":", "]");
+
+	parse_expression::expression result;
+	if (op.first < 0 or op.second < 0) {
+		return result;
 	}
-	return "";
+ 
+	result.valid = true;
+	result.level = op.first;
+
+	string name = str;
+	
+	size_t open = name.find('[');
+	if (open != string::npos) {
+		name = str.substr(0u, open);
+		result.operators.push_back(op.second);
+	}
+
+	result.arguments.push_back(parse_expression::argument::literalOf(name));
+	while (open != string::npos and open < str.size()) {
+		open += 1;
+		size_t close = str.find(']', open);
+		result.arguments.push_back(parse_expression::argument::constantOf(str.substr(open, close-open)));
+		open = close+1;
+	}
+
+	return result;
+}
+
+parse_expression::expression export_member(string str) {
+	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", ".", "");
+	
+	parse_expression::expression result;
+	if (op.first < 0 or op.second < 0) {
+		return result;
+	}
+ 
+	result.valid = true;
+	result.level = op.first;
+
+	if (not str.empty()) {
+		size_t prev = 0u;
+		size_t dot = str.find('.', prev);
+		while (dot != string::npos and dot < str.size()) {
+			result.arguments.push_back(export_field(str.substr(prev, dot-prev)));
+			result.operators.push_back(op.second);
+			prev = dot+1;
+			dot = str.find('.', prev);
+		}
+		result.arguments.push_back(export_field(str.substr(prev)));
+	}
+
+	return result;
+}
+
+parse_expression::expression export_net(string str) {
+	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", "'", "");
+
+	parse_expression::expression result;
+	if (op.first < 0 or op.second < 0) {
+		return result;
+	}
+ 
+	result.valid = true;
+	result.level = op.first;
+
+	size_t tic = str.rfind('\'');
+	if (tic != string::npos) {
+		string region = str.substr(tic+1);
+		str = str.substr(0, tic);
+		result.operators.push_back(op.second);
+		result.arguments.push_back(export_member(str));
+		result.arguments.push_back(parse_expression::argument::constantOf(region));
+	} else {
+		result.arguments.push_back(export_member(str));
+	}
+
+	return result;
+}
+
+
+parse_expression::expression export_net(int uid, ucs::ConstNetlist nets) {
+	string name = nets.netAt(uid);
+	if (name.empty()) {
+		return parse_expression::expression();
+	}
+
+	return export_net(name);
+}
+
+
+pair<int, int> export_operator(arithmetic::Operator op) {
+	for (int i = 0; i < (int)parse_expression::expression::precedence.size(); i++) {
+		for (int j = 0; j < (int)parse_expression::expression::precedence[i].symbols.size(); j++) {
+			if (areSame(op, parse_expression::expression::precedence[i].symbols[j])) {
+				return {i, j};
+			}
+		}
+	}
+	return {-1, -1};
 }
 
 string export_value(const Value &v) {
 	if (v.type == Value::BOOL) {
 		if (v.isNeutral()) {
-			return "gnd";
+			return "false";
 		} else if (v.isValid()) {
-			return "vdd";
+			return "true";
 		} else if (v.isUnstable()) {
 			return "unstable";
 		} else if (v.isUnknown()) {
@@ -83,8 +128,8 @@ string export_value(const Value &v) {
 parse_expression::expression export_expression(const Value &v, ucs::ConstNetlist nets) {
 	parse_expression::expression result;
 	result.valid = true;
-	result.level = parse_expression::expression::get_level("");
-	result.arguments.push_back(parse_expression::argument(export_value(v)));
+	result.level = parse_expression::expression::precedence.size();
+	result.arguments.push_back(parse_expression::argument::constantOf(export_value(v)));
 	return result;	
 }
 
@@ -98,23 +143,21 @@ parse_expression::expression export_expression(const State &s, ucs::ConstNetlist
 			parse_expression::expression add;
 			add.valid = true;
 			if (s.values[i].isNeutral()) {
-				add.operations.push_back("~");
-				add.level = parse_expression::expression::get_level(add.operations[0]);
+				auto op = parse_expression::expression::find(parse_expression::operation_set::UNARY, "~", "", "", "");
+				add.operators.push_back(op.second);
+				add.level = op.first;
 				add.arguments.resize(1);
-				add.arguments[0].literal.valid = true;
-				add.arguments[0].literal = ucs::Net(nets.netAt(i));
+				add.arguments[0].sub = export_net(i, nets);
 			} else if (s.values[i].isValid()) {
-				add.operations.push_back("");
-				add.level = parse_expression::expression::get_level(add.operations[0]);
+				add.level = parse_expression::expression::precedence.size();
 				add.arguments.resize(1);
-				add.arguments[0].literal.valid = true;
-				add.arguments[0].literal = ucs::Net(nets.netAt(i));
+				add.arguments[0].sub = export_net(i, nets);
 			} else {
-				add.operations.push_back("==");
-				add.level = parse_expression::expression::get_level(add.operations[0]);
+				auto op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", "==", "");
+				add.operators.push_back(op.second);
+				add.level = op.first;
 				add.arguments.resize(2);
-				add.arguments[0].literal.valid = true;
-				add.arguments[0].literal = ucs::Net(nets.netAt(i));
+				add.arguments[0].sub = export_net(i, nets);
 				add.arguments[1].constant = export_value(s.values[i]);
 			}
 
@@ -130,14 +173,15 @@ parse_expression::expression export_expression(const State &s, ucs::ConstNetlist
 	add.valid = true;
 
 	if (result.size() > 1) {
-		add.operations.push_back("&");
-		add.level = parse_expression::expression::get_level(add.operations[0]);
+		auto op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", "&", "");
+		add.operators.push_back(op.second);
+		add.level = op.first;
 		add.arguments.resize(result.size());
 		for (int i = 0; i < (int)result.size(); i++) {
 			add.arguments[i].sub = result[i];
 		}
 	} else {
-		add.arguments.push_back(parse_expression::argument("vdd"));
+		add.arguments.push_back(parse_expression::argument::constantOf("true"));
 	}
 
 	return add;
@@ -154,7 +198,7 @@ parse_expression::composition export_composition(const State &s, ucs::ConstNetli
 		if (not s.values[i].isUnknown()) {
 			parse_expression::assignment assign;
 			assign.valid = true;
-			assign.names.push_back(ucs::Net(nets.netAt(i)));
+			assign.lvalue.push_back(export_net(i, nets));
 			if (s.values[i].isNeutral()) {
 				assign.operation = "-";
 			} else if (s.values[i].isValid()) {
@@ -163,7 +207,7 @@ parse_expression::composition export_composition(const State &s, ucs::ConstNetli
 				assign.operation = "~";
 			} else {
 				assign.operation = "=";
-				assign.expressions.push_back(export_expression(s.values[i], nets));
+				assign.rvalue = export_expression(s.values[i], nets);
 			}
 			result.literals.push_back(assign);
 		}
@@ -190,26 +234,75 @@ parse_expression::expression export_expression(const Expression &expr, ucs::Cons
 	for (int i = 0; i < (int)expr.operations.size(); i++) {
 		parse_expression::expression add;
 		add.valid = true;
-		add.operations.push_back(export_operator(expr.operations[i].func));
-		add.level = parse_expression::expression::get_level(add.operations[0]);
-		if (expr.operations[i].func == Operation::CALL) {
-			for (int j = 2; j < (int)expr.operations[i].operands.size(); j++) {
-				add.operations.push_back(parse_expression::expression::precedence[add.level].symbols[1]);
-			}
-			add.operations.push_back(parse_expression::expression::precedence[add.level].symbols[2]);
-		}
-		add.arguments.resize(expr.operations[i].operands.size());
-		for (int j = 0; j < (int)expr.operations[i].operands.size(); j++) {
-			if (expr.operations[i].operands[j].isConst()) {
-				add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
-			} else if (expr.operations[i].operands[j].isVar()) {
-				add.arguments[j].literal.valid = true;
-				add.arguments[j].literal = ucs::Net(nets.netAt(expr.operations[i].operands[j].index));
-			} else if (expr.operations[i].operands[j].isExpr()) {
-				add.arguments[j].sub = result[expr.operations[i].operands[j].index];
-			}
-		}
+		if (expr.operations[i].func == Operation::NEGATIVE) {
+			auto op = export_operator(arithmetic::Operator("", "", "<", ""));
 
+			add.level = op.first;
+			add.operators.push_back(op.second);
+			add.arguments.resize(2);
+			if (expr.operations[i].operands[0].isConst()) {
+				add.arguments[0].constant = export_value(expr.operations[i].operands[0].cnst);
+			} else if (expr.operations[i].operands[0].isVar()) {
+				add.arguments[0].sub = export_net(expr.operations[i].operands[0].index, nets);
+			} else if (expr.operations[i].operands[0].isExpr()) {
+				add.arguments[0].sub = result[expr.operations[i].operands[0].index];
+			}
+			add.arguments[1].constant = "0";
+		} else if (expr.operations[i].func == Operation::VALIDITY) {
+			auto op = export_operator(arithmetic::Operator("(bool)", "", "", ""));
+
+			add.level = op.first;
+			add.operators.push_back(op.second);
+			add.arguments.resize(1);
+			if (expr.operations[i].operands[0].isConst()) {
+				add.arguments[0].constant = export_value(expr.operations[i].operands[0].cnst);
+			} else if (expr.operations[i].operands[0].isVar()) {
+				add.arguments[0].sub = export_net(expr.operations[i].operands[0].index, nets);
+			} else if (expr.operations[i].operands[0].isExpr()) {
+				add.arguments[0].sub = result[expr.operations[i].operands[0].index];
+			}
+		} else if (expr.operations[i].func == Operation::INVERSE) {
+			auto op = export_operator(arithmetic::Operator("", "", "/", ""));
+
+			add.level = op.first;
+			add.operators.push_back(op.second);
+			add.arguments.resize(2);
+			add.arguments[1].constant = "1";
+			if (expr.operations[i].operands[0].isConst()) {
+				add.arguments[0].constant = export_value(expr.operations[i].operands[0].cnst);
+			} else if (expr.operations[i].operands[0].isVar()) {
+				add.arguments[0].sub = export_net(expr.operations[i].operands[0].index, nets);
+			} else if (expr.operations[i].operands[0].isExpr()) {
+				add.arguments[0].sub = result[expr.operations[i].operands[0].index];
+			}
+		} else if (expr.operations[i].func == Operation::IDENTITY) {
+			auto op = export_operator(arithmetic::Operator("+", "", "", ""));
+
+			add.level = op.first;
+			add.arguments.resize(1);
+			if (expr.operations[i].operands[0].isConst()) {
+				add.arguments[0].constant = export_value(expr.operations[i].operands[0].cnst);
+			} else if (expr.operations[i].operands[0].isVar()) {
+				add.arguments[0].sub = export_net(expr.operations[i].operands[0].index, nets);
+			} else if (expr.operations[i].operands[0].isExpr()) {
+				add.arguments[0].sub = result[expr.operations[i].operands[0].index];
+			}
+		} else {
+			auto op = export_operator(arithmetic::Operation::operators[expr.operations[i].func]);
+
+			add.level = op.first;
+			add.operators.push_back(op.second);
+			add.arguments.resize(expr.operations[i].operands.size());
+			for (int j = 0; j < (int)expr.operations[i].operands.size(); j++) {
+				if (expr.operations[i].operands[j].isConst()) {
+					add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
+				} else if (expr.operations[i].operands[j].isVar()) {
+					add.arguments[j].sub = export_net(expr.operations[i].operands[j].index, nets);
+				} else if (expr.operations[i].operands[j].isExpr()) {
+					add.arguments[j].sub = result[expr.operations[i].operands[j].index];
+				}
+			}
+		}
 		result.push_back(add);
 	}
 
@@ -218,7 +311,7 @@ parse_expression::expression export_expression(const Expression &expr, ucs::Cons
 	} else {
 		parse_expression::expression add;
 		add.valid = true;
-		add.arguments.push_back(parse_expression::argument("gnd"));
+		add.arguments.push_back(parse_expression::argument::constantOf("false"));
 		return add;
 	}
 }
@@ -229,17 +322,17 @@ parse_expression::assignment export_assignment(const Action &expr, ucs::ConstNet
 	result.valid = true;
 
 	if (expr.variable != -1)
-		result.names.push_back(ucs::Net(nets.netAt(expr.variable)));
+		result.lvalue.push_back(export_net(expr.variable, nets));
 
 	if (expr.expr.operations.size() > 0)
-		result.expressions.push_back(export_expression(expr.expr, nets));
+		result.rvalue = export_expression(expr.expr, nets);
 
 	if (expr.expr.isNeutral()) {
 		result.operation = "-";
-		result.expressions.clear();
+		result.rvalue = parse_expression::expression();
 	} else if (expr.expr.isValid()) {
 		result.operation = "+";
-		result.expressions.clear();
+		result.rvalue = parse_expression::expression();
 	} else {
 		result.operation = "=";
 	}

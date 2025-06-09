@@ -92,11 +92,7 @@ TEST(VerilogExportParser, ComparisonOperations) {
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
-	
-	// Check for comparison operators
-	string result = verilog_expr.to_string();
-	EXPECT_TRUE(result.find("<") != string::npos);
-	EXPECT_TRUE(result.find("==") != string::npos);
+	EXPECT_EQ(verilog_expr.to_string(), "a<b&&c==d");
 }
 
 TEST(VerilogExportParser, ExportState) {

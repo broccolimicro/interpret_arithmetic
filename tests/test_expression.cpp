@@ -5,6 +5,8 @@
 #include <sstream>
 #include <string>
 
+#include <arithmetic/rewrite.h>
+
 #include <interpret_arithmetic/import.h>
 #include <interpret_arithmetic/export.h>
 #include "test_helpers.h"
@@ -30,12 +32,15 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	
 	expr.minimize();
+	expr.minimize(arithmetic::rewriteHuman());
+
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "a&b|~(c)");
+	EXPECT_EQ(out.to_string(), "a&b|~c");
 }
 
 TEST(ExpressionParser, ComplexBooleanOperations) {
@@ -53,11 +58,12 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.minimize();
+	expr.minimize(arithmetic::rewriteHuman());
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "a&b|d&~(c)");
+	EXPECT_EQ(out.to_string(), "a&b|d&~c");
 }
 
 TEST(ExpressionParser, ArithmeticOperations) {
@@ -95,6 +101,8 @@ TEST(ExpressionParser, ComparisonOperations) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	expr.minimize();
+	expr.minimize(arithmetic::rewriteHuman());
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -116,11 +124,13 @@ TEST(ExpressionParser, MixedOperations) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	expr.minimize();
+	expr.minimize(arithmetic::rewriteHuman());
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "a+b>c&d*e<f");
+	EXPECT_EQ(out.to_string(), "c<a+b&d*e<f");
 }
 
 TEST(ExpressionParser, NegationAndIdentity) {
@@ -137,6 +147,8 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	expr.minimize();
+	expr.minimize(arithmetic::rewriteHuman());
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -158,6 +170,8 @@ TEST(ExpressionParser, BitShifting) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	expr.minimize();
+	expr.minimize(arithmetic::rewriteHuman());
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -179,34 +193,36 @@ TEST(ExpressionParser, Constants) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	expr.minimize();
+	expr.minimize(arithmetic::rewriteHuman());
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "a&42|b&0");
+	EXPECT_EQ(out.to_string(), "a|b");
 }
 
-TEST(ExpressionParser, GndVdd) {
+TEST(ExpressionParser, TrueFalse) {
 	// Test gnd and vdd constants
-	string test_code = "a & vdd | b & gnd";
+	string test_code = "a & true | b & false";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
-	tokens.insert("gnd_vdd", test_code);
+	tokens.insert("true_false", test_code);
 
 	VariableSet v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	expr.minimize();
+	expr.minimize(arithmetic::rewriteHuman());
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	// The output may represent vdd as 1 and gnd as 0
-	EXPECT_TRUE(out.to_string().find("a&") != string::npos);
-	EXPECT_TRUE(out.to_string().find("|b&") != string::npos);
+	EXPECT_EQ(out.to_string(), "(bool)a");
 }
 
 TEST(ExpressionParser, DifferentRegions) {
@@ -224,7 +240,6 @@ TEST(ExpressionParser, DifferentRegions) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	cout << expr << endl;
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -245,13 +260,12 @@ TEST(ExpressionParser, Function) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	cout << expr << endl;
 	expr.minimize();
-	cout << expr << endl;
+	expr.minimize(arithmetic::rewriteHuman());
 	expression out = export_expression(expr, v);
 
-	EXPECT_TRUE(tokens.is_clean());
+	EXPECT_FALSE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "x+myfunc(a,b,c)");
+	EXPECT_EQ(out.to_string(), "false");
 }
 
