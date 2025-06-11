@@ -256,6 +256,17 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		and syntax.symbol(syntax.operators.back()).is("", "", "'", "")) {
 		string cnst = import_constant(syntax.arguments.back(), tokens);
 		result = import_argument(syntax.arguments[0], nets, atoi(cnst.c_str()), tokens, auto_define);
+	} else if (not syntax.operators.empty()
+    and parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::MODIFIER) {
+		vector<Expression> sub;
+		int op = import_operator(syntax.symbol(syntax.operators[0]));
+		if (op < 0) {
+			err = true;
+		}
+		for (int i = 0; i < (int)syntax.arguments.size() and not err; i++) {
+			sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
+		}
+		result = arithmetic::Expression(op, sub);
 	} else {
 		for (int i = 0; i < (int)syntax.arguments.size() and not err; i++) {
 			Expression sub = import_argument(syntax.arguments[i], nets, region, tokens, auto_define);
@@ -284,6 +295,10 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			} else {
 				for (int i = 0; i < (int)syntax.operators.size() and not err; i++) {
 					int op = import_operator(syntax.symbol(syntax.operators[i]));
+					
+					if (syntax.symbol(syntax.operators[i]).trigger == "(") {
+						cout << op << endl;
+					}
 					if (op < 0) {
 						err = true;
 					} else {

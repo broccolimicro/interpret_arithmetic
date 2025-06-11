@@ -5,12 +5,11 @@ namespace arithmetic {
 
 parse_expression::expression export_field(string str) {
 	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::MODIFIER, "", "[", ":", "]");
-
-	parse_expression::expression result;
 	if (op.first < 0 or op.second < 0) {
-		return result;
+		return parse_expression::expression();
 	}
  
+	parse_expression::expression result;
 	result.valid = true;
 	result.level = op.first;
 
@@ -35,18 +34,16 @@ parse_expression::expression export_field(string str) {
 
 parse_expression::expression export_member(string str) {
 	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", ".", "");
-	
-	parse_expression::expression result;
-	if (op.first < 0 or op.second < 0) {
-		return result;
+	if (op.first < 0 or op.second < 0 or str.empty()) {
+		return parse_expression::expression();
 	}
- 
-	result.valid = true;
-	result.level = op.first;
 
-	if (not str.empty()) {
-		size_t prev = 0u;
-		size_t dot = str.find('.', prev);
+	size_t prev = 0u;
+	size_t dot = str.find('.', prev);
+	if (dot != string::npos and dot < str.size()) {
+		parse_expression::expression result;
+		result.valid = true;
+		result.level = op.first;
 		while (dot != string::npos and dot < str.size()) {
 			result.arguments.push_back(export_field(str.substr(prev, dot-prev)));
 			result.operators.push_back(op.second);
@@ -54,34 +51,31 @@ parse_expression::expression export_member(string str) {
 			dot = str.find('.', prev);
 		}
 		result.arguments.push_back(export_field(str.substr(prev)));
+		return result;
 	}
-
-	return result;
+	return export_field(str.substr(prev));
 }
 
 parse_expression::expression export_net(string str) {
 	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", "'", "");
-
-	parse_expression::expression result;
 	if (op.first < 0 or op.second < 0) {
-		return result;
+		return parse_expression::expression();
 	}
- 
-	result.valid = true;
-	result.level = op.first;
 
 	size_t tic = str.rfind('\'');
 	if (tic != string::npos) {
 		string region = str.substr(tic+1);
 		str = str.substr(0, tic);
+
+		parse_expression::expression result;
+		result.valid = true;
+		result.level = op.first;
 		result.operators.push_back(op.second);
 		result.arguments.push_back(export_member(str));
 		result.arguments.push_back(parse_expression::argument::constantOf(region));
-	} else {
-		result.arguments.push_back(export_member(str));
+		return result;
 	}
-
-	return result;
+	return export_member(str);
 }
 
 
