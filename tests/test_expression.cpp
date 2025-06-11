@@ -248,7 +248,7 @@ TEST(ExpressionParser, DifferentRegions) {
 }
 
 TEST(ExpressionParser, Function) {
-	string test_code = "x + myfunc(a, b, c)";
+	string test_code = "x + y.myfunc(a, b, c)";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -260,19 +260,17 @@ TEST(ExpressionParser, Function) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	cout << expr << endl;
 	expr.minimize();
 	expr.minimize(arithmetic::rewriteHuman());
-	cout << expr << endl;
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "x+myfunc(a,b,c)");
+	EXPECT_EQ(out.to_string(), "x+y.myfunc(a,b,c)");
 }
 
 TEST(ExpressionParser, EmptyFunction) {
-	string test_code = "x + myfunc()";
+	string test_code = "x + y.myfunc()";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -284,14 +282,12 @@ TEST(ExpressionParser, EmptyFunction) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	cout << expr << endl;
 	expr.minimize();
 	expr.minimize(arithmetic::rewriteHuman());
-	cout << expr << endl;
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "x+myfunc()");
+	EXPECT_EQ(out.to_string(), "x+y.myfunc()");
 }
 

@@ -6,6 +6,7 @@ namespace arithmetic {
 parse_expression::expression export_field(string str) {
 	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::MODIFIER, "", "[", ":", "]");
 	if (op.first < 0 or op.second < 0) {
+		internal("", "unable to find \"[]\" operator", __FILE__, __LINE__);
 		return parse_expression::expression();
 	}
  
@@ -33,46 +34,40 @@ parse_expression::expression export_field(string str) {
 }
 
 parse_expression::expression export_member(string str) {
-	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", ".", "");
+	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::MODIFIER, "", ".", "", "");
 	if (op.first < 0 or op.second < 0 or str.empty()) {
+		internal("", "unable to find \".\" operator", __FILE__, __LINE__);
 		return parse_expression::expression();
 	}
 
-	size_t prev = 0u;
-	size_t dot = str.find('.', prev);
+	size_t dot = str.rfind('.');
 	if (dot != string::npos and dot < str.size()) {
 		parse_expression::expression result;
 		result.valid = true;
 		result.level = op.first;
-		while (dot != string::npos and dot < str.size()) {
-			result.arguments.push_back(export_field(str.substr(prev, dot-prev)));
-			result.operators.push_back(op.second);
-			prev = dot+1;
-			dot = str.find('.', prev);
-		}
-		result.arguments.push_back(export_field(str.substr(prev)));
+		result.arguments.push_back(export_member(str.substr(0, dot)));
+		result.arguments.push_back(export_member(str.substr(dot+1)));
+		result.operators.push_back(op.second);
 		return result;
 	}
-	return export_field(str.substr(prev));
+	return export_field(str);
 }
 
 parse_expression::expression export_net(string str) {
-	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", "'", "");
+	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::MODIFIER, "", "'", "", "");
 	if (op.first < 0 or op.second < 0) {
+		internal("", "unable to find \"'\" operator", __FILE__, __LINE__);
 		return parse_expression::expression();
 	}
 
 	size_t tic = str.rfind('\'');
 	if (tic != string::npos) {
-		string region = str.substr(tic+1);
-		str = str.substr(0, tic);
-
 		parse_expression::expression result;
 		result.valid = true;
 		result.level = op.first;
 		result.operators.push_back(op.second);
-		result.arguments.push_back(export_member(str));
-		result.arguments.push_back(parse_expression::argument::constantOf(region));
+		result.arguments.push_back(export_member(str.substr(0, tic)));
+		result.arguments.push_back(parse_expression::argument::constantOf(str.substr(tic+1)));
 		return result;
 	}
 	return export_member(str);
