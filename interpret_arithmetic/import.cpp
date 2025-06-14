@@ -320,15 +320,19 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 	return result;
 }
 
-Action import_action(const parse_expression::assignment &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
-{
+Action import_action(const parse_expression::assignment &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	int region = default_id;
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
 	}
 
 	Action result;
-	if (syntax.operation == "+") {
+	if (syntax.operation.empty()) {
+		result.variable = -1;
+		if (syntax.lvalue[0].valid) {
+			result.expr = import_expression(syntax.lvalue[0], nets, region, tokens, auto_define);
+		}
+	} else if (syntax.operation == "+") {
 		if (syntax.lvalue.size() > 0) {
 			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
@@ -350,89 +354,70 @@ Action import_action(const parse_expression::assignment &syntax, ucs::Netlist ne
 	return result;
 }
 
-Parallel import_parallel(const parse_expression::composition &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
-{
+Parallel import_parallel(const parse_expression::composition &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
+	if (syntax.level == 0 and (syntax.literals.size() + syntax.guards.size() + syntax.compositions.size()) > 1u) {
+		if (tokens != NULL) {
+			tokens->load(&syntax);
+			tokens->error("expected parallel composition", __FILE__, __LINE__);
+		} else {
+			error(syntax.to_string(), "expected parallel composition", __FILE__, __LINE__);
+		}
+		return Parallel();
+	}
+
 	int region = default_id;
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
 	}
 
 	Parallel result;
-
-	if (syntax.region != "")
-		region = ::atoi(syntax.region.c_str());
-
-	if (syntax.level == 0) {
-		if (not syntax.literals.empty()) {
-			result.actions.push_back(import_action(syntax.literals[0], nets, region, tokens, auto_define));
-		} else if (not syntax.guards.empty()) {
-			result = Parallel(import_expression(syntax.guards[0], nets, region, tokens, auto_define));
-		} else if (not syntax.compositions.empty()) {
-			Parallel temp = import_parallel(syntax.compositions[0], nets, region, tokens, auto_define);
-			result.actions.insert(result.actions.end(), temp.actions.begin(), temp.actions.end());
-		}
-	} else {
-		for (int i = 0; i < (int)syntax.literals.size(); i++)
-			result.actions.push_back(import_action(syntax.literals[i], nets, region, tokens, auto_define));
-
-		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.actions.push_back(Action(import_expression(syntax.guards[i], nets, region, tokens, auto_define)));
-
-		for (int i = 0; i < (int)syntax.compositions.size(); i++)
-		{
-			Parallel temp = import_parallel(syntax.compositions[i], nets, region, tokens, auto_define);
-			result.actions.insert(result.actions.end(), temp.actions.begin(), temp.actions.end());
-		}
+	for (int i = 0; i < (int)syntax.literals.size(); i++) {
+		result &= import_action(syntax.literals[i], nets, region, tokens, auto_define);
 	}
 
+	for (int i = 0; i < (int)syntax.guards.size(); i++) {
+		result &= Action(import_expression(syntax.guards[i], nets, region, tokens, auto_define));
+	}
+
+	for (int i = 0; i < (int)syntax.compositions.size(); i++) {
+		result &= import_parallel(syntax.compositions[i], nets, region, tokens, auto_define);
+	}
 	return result;
 }
 
 
-Choice import_choice(const parse_expression::composition &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
-{
+Choice import_choice(const parse_expression::composition &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	int region = default_id;
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
 	}
 
-	Choice result;
+	Choice result(syntax.level != 0);
 
-	if (syntax.region != "")
-		region = ::atoi(syntax.region.c_str());
-
-	if (syntax.level == 0)
-	{
-		for (int i = 0; i < (int)syntax.literals.size(); i++)
-		{
-			result.terms.push_back(Parallel());
-			result.terms.back().actions.push_back(import_action(syntax.literals[i], nets, region, tokens, auto_define));
-		}
-
-		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.terms.push_back(Parallel(import_expression(syntax.guards[i], nets, region, tokens, auto_define)));
-
-		for (int i = 0; i < (int)syntax.compositions.size(); i++)
-		{
-			Choice temp = import_choice(syntax.compositions[i], nets, region, tokens, auto_define);
-			result.terms.insert(result.terms.end(), temp.terms.begin(), temp.terms.end());
+	for (int i = 0; i < (int)syntax.literals.size(); i++) {
+		Action sub = import_action(syntax.literals[i], nets, region, tokens, auto_define);
+		if (syntax.level == 0) {
+			result |= sub;
+		} else {
+			result &= sub;
 		}
 	}
-	else
-	{
-		result.terms.push_back(Parallel());
-		for (int i = 0; i < (int)syntax.literals.size(); i++)
-			result.terms.back().actions.push_back(import_action(syntax.literals[i], nets, region, tokens, auto_define));
 
-		for (int i = 0; i < (int)syntax.guards.size(); i++)
-			result.terms.back().actions.push_back(Action(import_expression(syntax.guards[i], nets, region, tokens, auto_define)));
+	for (int i = 0; i < (int)syntax.guards.size(); i++) {
+		Action sub(import_expression(syntax.guards[i], nets, region, tokens, auto_define));
+		if (syntax.level == 0) {
+			result |= sub;
+		} else {
+			result &= sub;
+		}
+	}
 
-		for (int i = 0; i < (int)syntax.compositions.size(); i++)
-		{
-			Choice temp = import_choice(syntax.compositions[i], nets, region, tokens, auto_define);
-			for (int j = 0; j < (int)result.terms.size(); j++)
-				for (int k = 0; k < (int)temp.terms.size(); k++)
-					result.terms[j].actions.insert(result.terms[j].actions.end(), temp.terms[k].actions.begin(), temp.terms[k].actions.end());
+	for (int i = 0; i < (int)syntax.compositions.size(); i++) {
+		Choice sub = import_choice(syntax.compositions[i], nets, region, tokens, auto_define);
+		if (syntax.level == 0) {
+			result |= sub;
+		} else {
+			result &= sub;
 		}
 	}
 

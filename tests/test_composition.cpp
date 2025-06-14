@@ -36,9 +36,7 @@ TEST(CompositionParser, BasicParallelComposition) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_TRUE(out.to_string().find("a+") != string::npos);
-	EXPECT_TRUE(out.to_string().find("b+") != string::npos);
-	EXPECT_TRUE(out.to_string().find("c-") != string::npos);
+	EXPECT_EQ(out.to_string(), "a+,b+,c-");
 }
 
 TEST(CompositionParser, ComplexParallelComposition) {
@@ -82,9 +80,7 @@ TEST(CompositionParser, BasicChoice) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_TRUE(out.to_string().find("a+") != string::npos);
-	EXPECT_TRUE(out.to_string().find("b-") != string::npos);
-	EXPECT_TRUE(out.to_string().find(":") != string::npos);
+	EXPECT_EQ(out.to_string(), "a+:b-");
 }
 
 TEST(CompositionParser, ComplexChoice) {
@@ -122,16 +118,20 @@ TEST(CompositionParser, NestedCompositions) {
 	
 	composition in(tokens);
 	// This might need to be adapted based on how nested compositions are handled
+	cout << in.to_string() << endl;
 	arithmetic::Choice choice = arithmetic::import_choice(in, v, 0, &tokens, true);
+	cout << choice << endl;
 	composition out = export_composition(choice, v);
+	cout << out.to_string() << endl;
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
+	EXPECT_EQ(out.to_string(), "a+,b+:c-,d+:c-,e+");
 }
 
 TEST(CompositionParser, GuardedCompositions) {
 	// Test guarded compositions
-	string test_code = "a & b ? (c+, d+) : e ? (f-)";
+	string test_code = "(c+, d+) : e : (f-)";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -148,6 +148,7 @@ TEST(CompositionParser, GuardedCompositions) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
+	EXPECT_EQ(out.to_string(), "c+,d+:[e]:f-");
 }
 
 TEST(CompositionParser, RoundTripConversion) {
@@ -168,12 +169,5 @@ TEST(CompositionParser, RoundTripConversion) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	
-	// Check the output contains all the original terms
-	string result = out.to_string();
-	EXPECT_TRUE(result.find("a+") != string::npos);
-	EXPECT_TRUE(result.find("b-") != string::npos);
-	EXPECT_TRUE(result.find("c=") != string::npos);
-	EXPECT_TRUE(result.find("d") != string::npos);
-	EXPECT_TRUE(result.find("e") != string::npos);
-} 
+	EXPECT_EQ(out.to_string(), "a+,b-,c=d&e");
+}
