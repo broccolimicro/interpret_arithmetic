@@ -188,11 +188,11 @@ parse_expression::composition export_composition(const State &s, ucs::ConstNetli
 			parse_expression::assignment assign;
 			assign.valid = true;
 			assign.lvalue.push_back(export_net(i, nets));
-			if (s.values[i].isNeutral()) {
+			if (s.values[i].type == Value::BOOL and s.values[i].isNeutral()) {
 				assign.operation = "-";
-			} else if (s.values[i].isValid()) {
+			} else if (s.values[i].type == Value::BOOL and s.values[i].isValid()) {
 				assign.operation = "+";
-			} else if (s.values[i].isUnstable()) {
+			} else if (s.values[i].type == Value::BOOL and s.values[i].isUnstable()) {
 				assign.operation = "~";
 			} else {
 				assign.operation = "=";
@@ -316,11 +316,21 @@ parse_expression::assignment export_assignment(const Action &expr, ucs::ConstNet
 	if (expr.expr.operations.size() > 0)
 		result.rvalue = export_expression(expr.expr, nets);
 
-	if (expr.expr.isNeutral()) {
+	// TODO(edward.bingham) we need type information about the lvalue here
+	bool isBool = (expr.expr.operations.empty() or
+		(expr.expr.operations.back().func == arithmetic::Operation::IDENTITY
+		and expr.expr.operations.back().operands.size() == 1u
+		and expr.expr.operations.back().operands[0].isConst()
+		and expr.expr.operations.back().operands[0].cnst.type == Value::BOOL));
+
+	if (isBool and expr.expr.isNeutral()) {
 		result.operation = "-";
 		result.rvalue = parse_expression::expression();
-	} else if (expr.expr.isValid()) {
+	} else if (isBool and expr.expr.isValid()) {
 		result.operation = "+";
+		result.rvalue = parse_expression::expression();
+	} else if (isBool and expr.expr.operations.back().operands[0].cnst.isUnstable()) {
+		result.operation = "~";
 		result.rvalue = parse_expression::expression();
 	} else {
 		result.operation = "=";
