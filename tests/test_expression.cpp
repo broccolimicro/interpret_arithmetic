@@ -26,7 +26,7 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	expression::register_syntax(tokens);
 	tokens.insert("basic_boolean", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -53,7 +53,7 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	expression::register_syntax(tokens);
 	tokens.insert("complex_boolean", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -78,7 +78,7 @@ TEST(ExpressionParser, ArithmeticOperations) {
 	expression::register_syntax(tokens);
 	tokens.insert("arithmetic_ops", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -101,7 +101,7 @@ TEST(ExpressionParser, ComparisonOperations) {
 	expression::register_syntax(tokens);
 	tokens.insert("comparison_ops", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -126,7 +126,7 @@ TEST(ExpressionParser, MixedOperations) {
 	expression::register_syntax(tokens);
 	tokens.insert("mixed_ops", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -151,7 +151,7 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	expression::register_syntax(tokens);
 	tokens.insert("unary_ops", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -176,7 +176,7 @@ TEST(ExpressionParser, BitShifting) {
 	expression::register_syntax(tokens);
 	tokens.insert("shift_ops", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -201,7 +201,7 @@ TEST(ExpressionParser, Constants) {
 	expression::register_syntax(tokens);
 	tokens.insert("constants", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -226,7 +226,7 @@ TEST(ExpressionParser, TrueFalse) {
 	expression::register_syntax(tokens);
 	tokens.insert("true_false", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -251,7 +251,7 @@ TEST(ExpressionParser, DifferentRegions) {
 	expression::register_syntax(tokens);
 	tokens.insert("regions", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 
 	
 	expression in(tokens);
@@ -274,7 +274,7 @@ TEST(ExpressionParser, Function) {
 	expression::register_syntax(tokens);
 	tokens.insert("function", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -298,7 +298,7 @@ TEST(ExpressionParser, EmptyFunction) {
 	expression::register_syntax(tokens);
 	tokens.insert("function", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);

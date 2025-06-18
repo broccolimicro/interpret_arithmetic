@@ -24,7 +24,7 @@ TEST(StateAssignmentParser, BasicAssignmentPlus) {
 	composition::register_syntax(tokens);
 	tokens.insert("composition_plus", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
@@ -47,7 +47,7 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	composition::register_syntax(tokens);
 	tokens.insert("composition_minus", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
@@ -68,7 +68,7 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	composition::register_syntax(tokens);
 	tokens.insert("composition_value", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
@@ -89,7 +89,7 @@ TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 	composition::register_syntax(tokens);
 	tokens.insert("composition_vdd", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);

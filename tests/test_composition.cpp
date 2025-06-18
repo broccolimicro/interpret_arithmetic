@@ -30,7 +30,7 @@ TEST(CompositionParser, BasicParallelComposition) {
 	composition::register_syntax(tokens);
 	tokens.insert("parallel_test", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
@@ -53,7 +53,7 @@ TEST(CompositionParser, ComplexParallelComposition) {
 	composition::register_syntax(tokens);
 	tokens.insert("complex_parallel", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
@@ -78,7 +78,7 @@ TEST(CompositionParser, BasicChoice) {
 	composition::register_syntax(tokens);
 	tokens.insert("choice_test", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::Choice choice = arithmetic::import_choice(in, v, 0, &tokens, true);
@@ -101,7 +101,7 @@ TEST(CompositionParser, ComplexChoice) {
 	composition::register_syntax(tokens);
 	tokens.insert("complex_choice", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::Choice choice = arithmetic::import_choice(in, v, 0, &tokens, true);
@@ -124,7 +124,7 @@ TEST(CompositionParser, NestedCompositions) {
 	composition::register_syntax(tokens);
 	tokens.insert("nested_test", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	// This might need to be adapted based on how nested compositions are handled
@@ -151,7 +151,7 @@ TEST(CompositionParser, GuardedCompositions) {
 	composition::register_syntax(tokens);
 	tokens.insert("guarded_test", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	// This might need adaptation based on how guarded compositions are handled
@@ -175,7 +175,7 @@ TEST(CompositionParser, RoundTripConversion) {
 	composition::register_syntax(tokens);
 	tokens.insert("round_trip", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);

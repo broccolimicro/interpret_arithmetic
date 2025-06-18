@@ -27,7 +27,7 @@ TEST(VerilogExportParser, BasicBooleanOperations) {
 	expression::register_syntax(tokens);
 	tokens.insert("basic_boolean", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -55,7 +55,7 @@ TEST(VerilogExportParser, ArithmeticOperations) {
 	expression::register_syntax(tokens);
 	tokens.insert("arithmetic_ops", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -82,7 +82,7 @@ TEST(VerilogExportParser, ComparisonOperations) {
 	expression::register_syntax(tokens);
 	tokens.insert("comparison_ops", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -105,7 +105,7 @@ TEST(VerilogExportParser, ExportState) {
 	composition::register_syntax(tokens);
 	tokens.insert("state_test", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	parse_expression::composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
@@ -147,7 +147,7 @@ TEST(VerilogExportParser, ComplexExpression) {
 	expression::register_syntax(tokens);
 	tokens.insert("complex_expr", test_code);
 
-	VariableSet v;
+	MockNetlist v;
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
@@ -162,7 +162,7 @@ TEST(VerilogExportParser, ComplexExpression) {
 
 TEST(VerilogExportParser, ExportVariableName) {
 	// Test exporting variable names to Verilog
-	VariableSet v;
+	MockNetlist v;
 	
 	// Add some variables
 	v.netIndex("simple", true);         // simple name
