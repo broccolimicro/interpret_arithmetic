@@ -64,26 +64,26 @@ string import_net_name(const parse_expression::expression &syntax, tokenizer *to
 	string result = "";
 	if (syntax.operators.empty()) {
 		result += import_net_name(syntax.arguments[0], tokens);
-	} else if (syntax.symbol(syntax.operators[0]).is("", "[", ":", "]")) {
-		result += import_net_name(syntax.arguments[0], tokens) + syntax.symbol(syntax.operators[0]).trigger;
+	} else if (syntax.precedence.at(syntax.level, syntax.operators[0]).is("", "[", ":", "]")) {
+		result += import_net_name(syntax.arguments[0], tokens) + syntax.precedence.at(syntax.level, syntax.operators[0]).trigger;
 		for (int i = 1; i < (int)syntax.arguments.size(); i++) {
 			if (i != 1) {
-				result += syntax.symbol(syntax.operators[0]).infix;
+				result += syntax.precedence.at(syntax.level, syntax.operators[0]).infix;
 			}
 			result += import_constant(syntax.arguments[i], tokens);
 		}
-		result += syntax.symbol(syntax.operators[0]).postfix;
-	} else if (syntax.symbol(syntax.operators[0]).is("", ".", "", "")
-			or syntax.symbol(syntax.operators[0]).is("", "::", "", "")) {
+		result += syntax.precedence.at(syntax.level, syntax.operators[0]).postfix;
+	} else if (syntax.precedence.at(syntax.level, syntax.operators[0]).is("", ".", "", "")
+			or syntax.precedence.at(syntax.level, syntax.operators[0]).is("", "::", "", "")) {
 		result = import_net_name(syntax.arguments[0], tokens);
-		result += syntax.symbol(syntax.operators[0]).trigger;
+		result += syntax.precedence.at(syntax.level, syntax.operators[0]).trigger;
 		result += import_net_name(syntax.arguments[1], tokens);
 	} else {
 		if (tokens != nullptr) {
 			tokens->load(&syntax);
-			tokens->internal("sub expressions in variable names not supported " + syntax.symbol(syntax.operators[0]).to_string(), __FILE__, __LINE__);
+			tokens->internal("sub expressions in variable names not supported " + syntax.precedence.at(syntax.level, syntax.operators[0]).to_string(), __FILE__, __LINE__);
 		} else {
-			internal("", "sub expressions in variable names not supported " + syntax.symbol(syntax.operators[0]).to_string(), __FILE__, __LINE__);
+			internal("", "sub expressions in variable names not supported " + syntax.precedence.at(syntax.level, syntax.operators[0]).to_string(), __FILE__, __LINE__);
 		}
 		return "_";
 	}
@@ -235,7 +235,7 @@ Expression import_argument(const parse_expression::argument &syntax, ucs::Netlis
 Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	int region = default_id;
 
-	if (syntax.level >= (int)syntax.precedence.size()) {
+	if (not syntax.precedence.isValidLevel(syntax.level)) {
 		if (tokens != NULL) {
 			tokens->load(&syntax);
 			tokens->error("unrecognized operation", __FILE__, __LINE__);
@@ -248,19 +248,19 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 	bool err = false;
 	Expression result;
 	if (not syntax.operators.empty()
-		and parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::MODIFIER
-		and syntax.symbol(syntax.operators.back()).is("", "'", "", "")) {
+		and syntax.precedence.isModifier(syntax.level)
+		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "'", "", "")) {
 		string cnst = import_constant(syntax.arguments.back(), tokens);
 		result = import_argument(syntax.arguments[0], nets, atoi(cnst.c_str()), tokens, auto_define);
 	} else if (not syntax.operators.empty()
-		and parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::MODIFIER
-		and (syntax.symbol(syntax.operators.back()).is("", ".", "", "")
-			or syntax.symbol(syntax.operators.back()).is("", "::", "", ""))) {
+		and syntax.precedence.isModifier(syntax.level)
+		and (syntax.precedence.at(syntax.level, syntax.operators.back()).is("", ".", "", "")
+			or syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "::", "", ""))) {
 		result = Operand::varOf(import_net(syntax, nets, default_id, tokens, auto_define));
 	} else if (not syntax.operators.empty()
-    and parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::MODIFIER) {
+    and syntax.precedence.isModifier(syntax.level)) {
 		vector<Expression> sub;
-		int op = import_operator(syntax.symbol(syntax.operators[0]));
+		int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
 		if (op < 0) {
 			err = true;
 		}
@@ -274,7 +274,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			if (i == 0) {
 				result = sub;
 			} else {
-				int op = import_operator(syntax.symbol(syntax.operators[i-1]));
+				int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i-1]));
 				if (op < 0) {
 					err = true;
 				} else {
@@ -284,9 +284,9 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		}
 
 		if (syntax.arguments.size() == 1) {
-			if (parse_expression::expression::precedence[syntax.level].type == parse_expression::operation_set::UNARY) {
+			if (syntax.precedence.isUnary(syntax.level)) {
 				for (int i = (int)syntax.operators.size()-1; i >= 0 and not err; i--) {
-					int op = import_operator(syntax.symbol(syntax.operators[i]));
+					int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i]));
 					if (op < 0) {
 						err = true;
 					} else {
@@ -295,7 +295,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 				}
 			} else {
 				for (int i = 0; i < (int)syntax.operators.size() and not err; i++) {
-					int op = import_operator(syntax.symbol(syntax.operators[i]));
+					int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i]));
 					
 					if (op < 0) {
 						err = true;

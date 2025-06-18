@@ -14,13 +14,11 @@
 using namespace std;
 using namespace parse_expression;
 
-//==============================================================================
-// Expression Tests
-//==============================================================================
-
 TEST(ExpressionParser, BasicBooleanOperations) {
 	// Test simple AND, OR, NOT operations
 	string test_code = "a & b | ~c";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -47,6 +45,8 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	// Test more complex boolean expressions
 	string test_code = "(a & b) | (~c & d)";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -70,6 +70,8 @@ TEST(ExpressionParser, ArithmeticOperations) {
 	// Test arithmetic operations
 	string test_code = "a + b * c";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -90,6 +92,8 @@ TEST(ExpressionParser, ArithmeticOperations) {
 TEST(ExpressionParser, ComparisonOperations) {
 	// Test comparison operations
 	string test_code = "a < b & c == d";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -114,6 +118,8 @@ TEST(ExpressionParser, MixedOperations) {
 	// Test mixing boolean, arithmetic, and comparison operations
 	string test_code = "(a + b > c) & (d * e < f)";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -136,6 +142,8 @@ TEST(ExpressionParser, MixedOperations) {
 TEST(ExpressionParser, NegationAndIdentity) {
 	// Test unary operations
 	string test_code = "+a & -b";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -160,6 +168,8 @@ TEST(ExpressionParser, BitShifting) {
 	// Test bit shifting operations
 	string test_code = "a << 2 | b >> 3";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -182,6 +192,8 @@ TEST(ExpressionParser, BitShifting) {
 TEST(ExpressionParser, Constants) {
 	// Test numeric constants
 	string test_code = "a & 42 | b & 0";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -206,6 +218,8 @@ TEST(ExpressionParser, TrueFalse) {
 	// Test gnd and vdd constants
 	string test_code = "a & true | b & false";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -229,6 +243,8 @@ TEST(ExpressionParser, DifferentRegions) {
 	// Test expressions with region specifications
 	string test_code = "a'1 & b'2 | c'3";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -249,6 +265,8 @@ TEST(ExpressionParser, DifferentRegions) {
 
 TEST(ExpressionParser, Function) {
 	string test_code = "x + y.myfunc(a, b, c)";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -271,6 +289,8 @@ TEST(ExpressionParser, Function) {
 
 TEST(ExpressionParser, EmptyFunction) {
 	string test_code = "x + y.myfunc()";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);

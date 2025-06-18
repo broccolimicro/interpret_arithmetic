@@ -4,22 +4,22 @@
 namespace arithmetic {
 
 parse_expression::expression export_field(string str) {
-	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::MODIFIER, "", "[", ":", "]");
-	if (op.first < 0 or op.second < 0) {
+	static const auto op = parse_expression::expression::precedence.find(parse_expression::operation_set::MODIFIER, "", "[", ":", "]");
+	if (op.level < 0 or op.index < 0) {
 		internal("", "unable to find \"[]\" operator", __FILE__, __LINE__);
 		return parse_expression::expression();
 	}
  
 	parse_expression::expression result;
 	result.valid = true;
-	result.level = op.first;
+	result.level = op.level;
 
 	string name = str;
 	
 	size_t open = name.find('[');
 	if (open != string::npos) {
 		name = str.substr(0u, open);
-		result.operators.push_back(op.second);
+		result.operators.push_back(op.index);
 	}
 
 	result.arguments.push_back(parse_expression::argument::literalOf(name));
@@ -34,8 +34,8 @@ parse_expression::expression export_field(string str) {
 }
 
 parse_expression::expression export_member(string str) {
-	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::MODIFIER, "", ".", "", "");
-	if (op.first < 0 or op.second < 0 or str.empty()) {
+	static const auto op = parse_expression::expression::precedence.find(parse_expression::operation_set::MODIFIER, "", ".", "", "");
+	if (op.level < 0 or op.index < 0 or str.empty()) {
 		internal("", "unable to find \".\" operator", __FILE__, __LINE__);
 		return parse_expression::expression();
 	}
@@ -44,18 +44,18 @@ parse_expression::expression export_member(string str) {
 	if (dot != string::npos and dot < str.size()) {
 		parse_expression::expression result;
 		result.valid = true;
-		result.level = op.first;
+		result.level = op.level;
 		result.arguments.push_back(export_member(str.substr(0, dot)));
 		result.arguments.push_back(export_member(str.substr(dot+1)));
-		result.operators.push_back(op.second);
+		result.operators.push_back(op.index);
 		return result;
 	}
 	return export_field(str);
 }
 
 parse_expression::expression export_net(string str) {
-	static const pair<int, int> op = parse_expression::expression::find(parse_expression::operation_set::MODIFIER, "", "'", "", "");
-	if (op.first < 0 or op.second < 0) {
+	static const auto op = parse_expression::expression::precedence.find(parse_expression::operation_set::MODIFIER, "", "'", "", "");
+	if (op.level < 0 or op.index < 0) {
 		internal("", "unable to find \"'\" operator", __FILE__, __LINE__);
 		return parse_expression::expression();
 	}
@@ -64,8 +64,8 @@ parse_expression::expression export_net(string str) {
 	if (tic != string::npos) {
 		parse_expression::expression result;
 		result.valid = true;
-		result.level = op.first;
-		result.operators.push_back(op.second);
+		result.level = op.level;
+		result.operators.push_back(op.index);
 		result.arguments.push_back(export_member(str.substr(0, tic)));
 		result.arguments.push_back(parse_expression::argument::constantOf(str.substr(tic+1)));
 		return result;
@@ -86,8 +86,8 @@ parse_expression::expression export_net(int uid, ucs::ConstNetlist nets) {
 
 pair<int, int> export_operator(arithmetic::Operator op) {
 	for (int i = 0; i < (int)parse_expression::expression::precedence.size(); i++) {
-		for (int j = 0; j < (int)parse_expression::expression::precedence[i].symbols.size(); j++) {
-			if (areSame(op, parse_expression::expression::precedence[i].symbols[j])) {
+		for (int j = 0; j < (int)parse_expression::expression::precedence.at(i).size(); j++) {
+			if (areSame(op, parse_expression::expression::precedence.at(i, j))) {
 				return {i, j};
 			}
 		}
@@ -132,9 +132,9 @@ parse_expression::expression export_expression(const State &s, ucs::ConstNetlist
 			parse_expression::expression add;
 			add.valid = true;
 			if (s.values[i].isNeutral()) {
-				auto op = parse_expression::expression::find(parse_expression::operation_set::UNARY, "~", "", "", "");
-				add.operators.push_back(op.second);
-				add.level = op.first;
+				auto op = parse_expression::expression::precedence.find(parse_expression::operation_set::UNARY, "~", "", "", "");
+				add.operators.push_back(op.index);
+				add.level = op.level;
 				add.arguments.resize(1);
 				add.arguments[0].sub = export_net(i, nets);
 			} else if (s.values[i].isValid()) {
@@ -142,9 +142,9 @@ parse_expression::expression export_expression(const State &s, ucs::ConstNetlist
 				add.arguments.resize(1);
 				add.arguments[0].sub = export_net(i, nets);
 			} else {
-				auto op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", "==", "");
-				add.operators.push_back(op.second);
-				add.level = op.first;
+				auto op = parse_expression::expression::precedence.find(parse_expression::operation_set::BINARY, "", "", "==", "");
+				add.operators.push_back(op.index);
+				add.level = op.level;
 				add.arguments.resize(2);
 				add.arguments[0].sub = export_net(i, nets);
 				add.arguments[1].constant = export_value(s.values[i]);
@@ -162,9 +162,9 @@ parse_expression::expression export_expression(const State &s, ucs::ConstNetlist
 	add.valid = true;
 
 	if (result.size() > 1) {
-		auto op = parse_expression::expression::find(parse_expression::operation_set::BINARY, "", "", "&", "");
-		add.operators.push_back(op.second);
-		add.level = op.first;
+		auto op = parse_expression::expression::precedence.find(parse_expression::operation_set::BINARY, "", "", "&", "");
+		add.operators.push_back(op.index);
+		add.level = op.level;
 		add.arguments.resize(result.size());
 		for (int i = 0; i < (int)result.size(); i++) {
 			add.arguments[i].sub = result[i];

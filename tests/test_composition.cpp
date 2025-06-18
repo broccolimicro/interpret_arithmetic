@@ -22,6 +22,8 @@ TEST(CompositionParser, BasicParallelComposition) {
 	// Test parallel composition (,)
 	string test_code = "a+, b+, c-";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -42,6 +44,8 @@ TEST(CompositionParser, BasicParallelComposition) {
 TEST(CompositionParser, ComplexParallelComposition) {
 	// Test complex parallel composition
 	string test_code = "a+, b = c & d, e-";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -66,6 +70,8 @@ TEST(CompositionParser, BasicChoice) {
 	// Test internal choice (:)
 	string test_code = "(a+) : (b-)";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -87,6 +93,8 @@ TEST(CompositionParser, ComplexChoice) {
 	// Test more complex choice
 	string test_code = "(a = x & y) : (b-, c+)";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -107,6 +115,8 @@ TEST(CompositionParser, ComplexChoice) {
 TEST(CompositionParser, NestedCompositions) {
 	// Test nested compositions
 	string test_code = "(a+, b+) : (c-, (d+ : e+))";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -133,6 +143,8 @@ TEST(CompositionParser, GuardedCompositions) {
 	// Test guarded compositions
 	string test_code = "(c+, d+) : e : (f-)";
 	
+	expression::register_precedence(createPrecedence());
+	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -154,6 +166,8 @@ TEST(CompositionParser, GuardedCompositions) {
 TEST(CompositionParser, RoundTripConversion) {
 	// Test round-trip conversion
 	string test_code = "a+, b-, c = d & e";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);

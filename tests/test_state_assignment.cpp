@@ -13,14 +13,10 @@
 using namespace std;
 using namespace parse_expression;
 
-
-//==============================================================================
-// State and Assignment Tests
-//==============================================================================
-
 TEST(StateAssignmentParser, BasicAssignmentPlus) {
-	// Test basic composition with plus operation (addition)
 	string test_code = "a+";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -42,6 +38,8 @@ TEST(StateAssignmentParser, BasicAssignmentPlus) {
 TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	// Test basic composition with minus operation (removal)
 	string test_code = "b-";
+	
+	expression::register_precedence(createPrecedence());
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
