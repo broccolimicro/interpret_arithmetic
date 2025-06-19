@@ -314,6 +314,32 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			string cnst = syntax.arguments.back().to_string();
 			result = arithmetic::Expression(op, import_argument(syntax.arguments[0], nets, default_id, tokens, auto_define), arithmetic::Operand::stringOf(cnst));
 		}
+	// DESIGN(edward.bingham) This moves "this" into the first
+	// argument of the function. So "a.b.c(d, e) becomes c(a.b,
+	// d, e). This seems like a reasonable way to simplify
+	// things, and follows the early style of c++ function names.
+	// But I can see how it could create ambiguities for
+	// overloaded functions.
+	} else if (not syntax.operators.empty()
+		and syntax.precedence.isModifier(syntax.level)
+		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "(", ",", ")")) {
+		vector<Expression> sub;
+		int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
+		int memb = import_operator(parse_expression::operation("", ".", "", ""));
+		if (op < 0) {
+			err = true;
+		}
+		for (int i = 0; i < (int)syntax.arguments.size() and not err; i++) {
+			sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
+		}
+		if (not sub.empty() and not sub[0].operations.empty() and sub[0].operations.back().func == memb) {
+			arithmetic::Operand name = sub[0].operations.back().operands.back();
+			sub[0].operations.back().func = arithmetic::Operation::IDENTITY;
+			sub[0].operations.back().operands.pop_back();
+			sub.insert(sub.begin(), name);
+		}
+		result = arithmetic::Expression(op, sub);
+	// END DESIGN
 	} else if (not syntax.operators.empty()
     and syntax.precedence.isModifier(syntax.level)) {
 		vector<Expression> sub;
