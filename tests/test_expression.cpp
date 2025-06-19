@@ -289,8 +289,10 @@ TEST(ExpressionParser, Function) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	cout << expr << endl;
 	expr.minimize();
 	expr.minimize(arithmetic::rewriteHuman());
+	cout << expr << endl;
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -299,7 +301,7 @@ TEST(ExpressionParser, Function) {
 }
 
 TEST(ExpressionParser, EmptyFunction) {
-	string test_code = "x + y.myfunc()";
+	string test_code = "x + z.f.y.myfunc()";
 	
 	expression::register_precedence(createPrecedence());
 	assignment::lvalueLevel = 13;
@@ -314,12 +316,14 @@ TEST(ExpressionParser, EmptyFunction) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	cout << expr << endl;
 	expr.minimize();
 	expr.minimize(arithmetic::rewriteHuman());
+	cout << expr << endl;
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "x+y.myfunc()");
+	EXPECT_EQ(out.to_string(), "x+z.f.y.myfunc()");
 }
 

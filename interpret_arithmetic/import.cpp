@@ -302,9 +302,18 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		result = import_argument(syntax.arguments[0], nets, atoi(cnst.c_str()), tokens, auto_define);
 	} else if (not syntax.operators.empty()
 		and syntax.precedence.isModifier(syntax.level)
-		and (syntax.precedence.at(syntax.level, syntax.operators.back()).is("", ".", "", "")
-			or syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "::", "", ""))) {
+		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "::", "", "")) {
 		result = Operand::varOf(import_net(syntax, nets, default_id, tokens, auto_define));
+	} else if (not syntax.operators.empty()
+		and syntax.precedence.isModifier(syntax.level)
+		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", ".", "", "")) {
+		int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
+		if (op < 0) {
+			err = true;
+		} else {
+			string cnst = syntax.arguments.back().to_string();
+			result = arithmetic::Expression(op, import_argument(syntax.arguments[0], nets, default_id, tokens, auto_define), arithmetic::Operand::stringOf(cnst));
+		}
 	} else if (not syntax.operators.empty()
     and syntax.precedence.isModifier(syntax.level)) {
 		vector<Expression> sub;
