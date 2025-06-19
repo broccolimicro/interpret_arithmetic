@@ -249,6 +249,54 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 	Expression result;
 	if (not syntax.operators.empty()
 		and syntax.precedence.isModifier(syntax.level)
+		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "!", "", "")) {
+		vector<Expression> sub;
+		int memb = import_operator(parse_expression::operation("", ".", "", ""));
+		int call = import_operator(parse_expression::operation("", "(", ",", ")"));
+		if (call < 0 or memb < 0) {
+			err = true;
+		}
+		if (not err) {
+			sub.push_back(arithmetic::Expression(memb, import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Operand::stringOf("send")));
+			for (int i = 1; i < (int)syntax.arguments.size() and not err; i++) {
+				sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
+			}
+			result = arithmetic::Expression(call, sub);
+		}
+	} else if (not syntax.operators.empty()
+		and syntax.precedence.isUnary(syntax.level)
+		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "", "", "?")) {
+		vector<Expression> sub;
+		int memb = import_operator(parse_expression::operation("", ".", "", ""));
+		int call = import_operator(parse_expression::operation("", "(", ",", ")"));
+		if (call < 0 or memb < 0) {
+			err = true;
+		}
+		if (not err) {
+			sub.push_back(arithmetic::Expression(memb, import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Operand::stringOf("recv")));
+			for (int i = 1; i < (int)syntax.arguments.size() and not err; i++) {
+				sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
+			}
+			result = arithmetic::Expression(call, sub);
+		}
+	} else if (not syntax.operators.empty()
+		and syntax.precedence.isUnary(syntax.level)
+		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("#", "", "", "")) {
+		vector<Expression> sub;
+		int memb = import_operator(parse_expression::operation("", ".", "", ""));
+		int call = import_operator(parse_expression::operation("", "(", ",", ")"));
+		if (call < 0 or memb < 0) {
+			err = true;
+		}
+		if (not err) {
+			sub.push_back(arithmetic::Expression(memb, import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Operand::stringOf("peek")));
+			for (int i = 1; i < (int)syntax.arguments.size() and not err; i++) {
+				sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
+			}
+			result = arithmetic::Expression(call, sub);
+		}
+	} else if (not syntax.operators.empty()
+		and syntax.precedence.isModifier(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "'", "", "")) {
 		string cnst = import_constant(syntax.arguments.back(), tokens);
 		result = import_argument(syntax.arguments[0], nets, atoi(cnst.c_str()), tokens, auto_define);

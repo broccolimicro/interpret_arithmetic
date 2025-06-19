@@ -110,6 +110,8 @@ string export_value(const Value &v) {
 		return ::to_string(v.ival);
 	} else if (v.type == Value::REAL) {
 		return ::to_string(v.rval);
+	} else if (v.type == Value::STRING) {
+		return v.sval;
 	}
 	return "";
 }

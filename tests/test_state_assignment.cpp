@@ -17,6 +17,7 @@ TEST(StateAssignmentParser, BasicAssignmentPlus) {
 	string test_code = "a+";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -40,6 +41,7 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	string test_code = "b-";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);

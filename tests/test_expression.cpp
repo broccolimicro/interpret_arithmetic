@@ -19,7 +19,8 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	string test_code = "a & b | ~c";
 	
 	expression::register_precedence(createPrecedence());
-	
+	assignment::lvalueLevel = 13;
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -46,6 +47,7 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	string test_code = "(a & b) | (~c & d)";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -71,6 +73,7 @@ TEST(ExpressionParser, ArithmeticOperations) {
 	string test_code = "a + b * c";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -94,6 +97,7 @@ TEST(ExpressionParser, ComparisonOperations) {
 	string test_code = "a < b & c == d";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -119,6 +123,7 @@ TEST(ExpressionParser, MixedOperations) {
 	string test_code = "(a + b > c) & (d * e < f)";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -144,6 +149,7 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	string test_code = "+a & -b";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -169,6 +175,7 @@ TEST(ExpressionParser, BitShifting) {
 	string test_code = "a << 2 | b >> 3";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -194,6 +201,7 @@ TEST(ExpressionParser, Constants) {
 	string test_code = "a & 42 | b & 0";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -219,6 +227,7 @@ TEST(ExpressionParser, TrueFalse) {
 	string test_code = "a & true | b & false";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -244,6 +253,7 @@ TEST(ExpressionParser, DifferentRegions) {
 	string test_code = "a'1 & b'2 | c'3";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -267,6 +277,7 @@ TEST(ExpressionParser, Function) {
 	string test_code = "x + y.myfunc(a, b, c)";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -291,6 +302,7 @@ TEST(ExpressionParser, EmptyFunction) {
 	string test_code = "x + y.myfunc()";
 	
 	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
