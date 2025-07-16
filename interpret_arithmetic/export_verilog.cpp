@@ -1,4 +1,6 @@
 #include "export_verilog.h"
+#include <common/message.h>
+#include <arithmetic/algorithm.h>
 
 namespace parse_verilog {
 
@@ -136,39 +138,59 @@ string export_operation(int op) {
 	return "";
 }
 
+argument export_argument(const vector<expression> &sub, arithmetic::Operand op, ucs::ConstNetlist nets) {
+	argument result;
+	if (op.isConst()) {
+		result.constant = export_value(op.cnst);
+	} else if (op.isVar()) {
+		result.literal = ucs::Net(nets.netAt(op.index));
+	} else if (op.isExpr()) {
+		result.sub = sub[op.index];
+	} else if (op.isType()) {
+		internal("", "unable to export type expression", __FILE__, __LINE__);
+	} else {
+		internal("", "unable to export undefined expression", __FILE__, __LINE__);
+	}
+	return result;
+}
+
 expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets)
 {
 	vector<expression> result;
 
-	for (int i = 0; i < (int)expr.operations.size(); i++)
-	{
+	for (arithmetic::ConstUpIterator i(expr, {expr.top}); not i.done(); ++i) {
 		expression add;
 		add.valid = true;
-		add.operations.push_back(export_operation(expr.operations[i].func));
+		add.operations.push_back(export_operation(i->func));
 		add.level = expression::get_level(add.operations[0]);
-		add.arguments.resize(expr.operations[i].operands.size());
-		for (int j = 0; j < (int)expr.operations[i].operands.size(); j++)
-		{
-			if (expr.operations[i].operands[j].isConst())
-				add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
-			else if (expr.operations[i].operands[j].isVar())
-				add.arguments[j].literal = ucs::Net(nets.netAt(expr.operations[i].operands[j].index));
-			else if (expr.operations[i].operands[j].isExpr())
-				add.arguments[j].sub = result[expr.operations[i].operands[j].index];
+		add.arguments.resize(i->operands.size());
+		for (int j = 0; j < (int)i->operands.size(); j++) {
+			add.arguments[j] = export_argument(result, i->operands[j], nets);
 		}
 
-		result.push_back(add);
+		if (i->exprIndex >= result.size()) {
+			result.resize(i->exprIndex+1);
+		}
+		result[i->exprIndex] = add;
 	}
 
-	if (result.size() > 0)
-		return result.back();
-	else
-	{
-		expression add;
-		add.valid = true;
-		add.arguments.push_back(argument("0"));
-		return add;
+	if (expr.top.isExpr()) {
+		if (expr.top.index < result.size()) {
+			return result[expr.top.index];
+		} else {
+			expression add;
+			add.valid = true;
+			add.arguments.push_back(argument("0"));
+			return add;
+		}
 	}
+
+	expression add;
+	add.valid = true;
+	add.operations.push_back("");
+	add.level = expression::get_level(add.operations[0]);
+	add.arguments.push_back(export_argument(result, expr.top, nets));
+	return add;
 }
 
 }

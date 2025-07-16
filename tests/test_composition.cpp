@@ -133,11 +133,8 @@ TEST(CompositionParser, NestedCompositions) {
 	
 	composition in(tokens);
 	// This might need to be adapted based on how nested compositions are handled
-	cout << in.to_string() << endl;
 	arithmetic::Choice choice = arithmetic::import_choice(in, v, 0, &tokens, true);
-	cout << choice << endl;
 	composition out = export_composition(choice, v);
-	cout << out.to_string() << endl;
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -209,7 +206,6 @@ TEST(CompositionParser, ChannelActions) {
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
-	cout << parallel << endl;
 	composition out = export_composition(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -233,7 +229,6 @@ TEST(CompositionParser, ChannelProbe) {
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
-	cout << parallel << endl;
 	composition out = export_composition(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());

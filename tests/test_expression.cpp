@@ -6,6 +6,7 @@
 #include <string>
 
 #include <arithmetic/rewrite.h>
+#include <arithmetic/algorithm.h>
 
 #include <interpret_arithmetic/import.h>
 #include <interpret_arithmetic/export.h>
@@ -31,9 +32,9 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
+
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 
 	expression out = export_expression(expr, v);
 
@@ -59,8 +60,8 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -109,8 +110,8 @@ TEST(ExpressionParser, ComparisonOperations) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -135,8 +136,8 @@ TEST(ExpressionParser, MixedOperations) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -161,8 +162,8 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -187,8 +188,8 @@ TEST(ExpressionParser, BitShifting) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -213,8 +214,8 @@ TEST(ExpressionParser, Constants) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -239,8 +240,8 @@ TEST(ExpressionParser, TrueFalse) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -289,10 +290,8 @@ TEST(ExpressionParser, Function) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	cout << expr << endl;
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
-	cout << expr << endl;
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -316,10 +315,8 @@ TEST(ExpressionParser, EmptyFunction) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	cout << expr << endl;
-	expr.minimize();
-	expr.minimize(arithmetic::rewriteHuman());
-	cout << expr << endl;
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());

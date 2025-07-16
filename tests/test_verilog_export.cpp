@@ -157,7 +157,7 @@ TEST(VerilogExportParser, ComplexExpression) {
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
-	EXPECT_EQ(verilog_expr.to_string(), "a&&b||c&&!(d)||e<f");
+	EXPECT_EQ(verilog_expr.to_string(), "a&&b||c&&!d||e<f");
 }
 
 TEST(VerilogExportParser, ExportVariableName) {

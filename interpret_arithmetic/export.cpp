@@ -1,5 +1,6 @@
 #include "export.h"
 #include "support.h"
+#include <arithmetic/algorithm.h>
 
 namespace arithmetic {
 
@@ -220,91 +221,90 @@ parse_expression::composition export_composition(const Region &r, ucs::ConstNetl
 	return result;
 }
 
+parse_expression::argument export_argument(const vector<parse_expression::expression> &sub, Operand op, ucs::ConstNetlist nets) {
+	parse_expression::argument result;
+	if (op.isConst()) {
+		result.constant = export_value(op.cnst);
+	} else if (op.isVar()) {
+		result.sub = export_net(op.index, nets);
+	} else if (op.isExpr()) {
+		result.sub = sub[op.index];
+	} else if (op.isType()) {
+		internal("", "unable to export type expression", __FILE__, __LINE__);
+	} else {
+		internal("", "unable to export undefined expression", __FILE__, __LINE__);
+	}
+	return result;
+}
+
 parse_expression::expression export_expression(const Expression &expr, ucs::ConstNetlist nets) {
 	vector<parse_expression::expression> result;
-	for (int i = 0; i < (int)expr.operations.size(); i++) {
+	for (arithmetic::ConstUpIterator i(expr, {expr.top}); not i.done(); ++i) {
 		parse_expression::expression add;
 		add.valid = true;
-		if (expr.operations[i].func == Operation::NEGATIVE) {
+		if (i->func == Operation::NEGATIVE) {
 			auto op = export_operator(arithmetic::Operator("", "", "<", ""));
 
 			add.level = op.first;
 			add.operators.push_back(op.second);
 			add.arguments.resize(2);
-			if (expr.operations[i].operands[0].isConst()) {
-				add.arguments[0].constant = export_value(expr.operations[i].operands[0].cnst);
-			} else if (expr.operations[i].operands[0].isVar()) {
-				add.arguments[0].sub = export_net(expr.operations[i].operands[0].index, nets);
-			} else if (expr.operations[i].operands[0].isExpr()) {
-				add.arguments[0].sub = result[expr.operations[i].operands[0].index];
-			}
+			add.arguments[0] = export_argument(result, i->operands[0], nets);
 			add.arguments[1].constant = "0";
-		} else if (expr.operations[i].func == Operation::VALIDITY) {
+		} else if (i->func == Operation::VALIDITY) {
 			auto op = export_operator(arithmetic::Operator("(bool)", "", "", ""));
 
 			add.level = op.first;
 			add.operators.push_back(op.second);
 			add.arguments.resize(1);
-			if (expr.operations[i].operands[0].isConst()) {
-				add.arguments[0].constant = export_value(expr.operations[i].operands[0].cnst);
-			} else if (expr.operations[i].operands[0].isVar()) {
-				add.arguments[0].sub = export_net(expr.operations[i].operands[0].index, nets);
-			} else if (expr.operations[i].operands[0].isExpr()) {
-				add.arguments[0].sub = result[expr.operations[i].operands[0].index];
-			}
-		} else if (expr.operations[i].func == Operation::INVERSE) {
+			add.arguments[0] = export_argument(result, i->operands[0], nets);
+		} else if (i->func == Operation::INVERSE) {
 			auto op = export_operator(arithmetic::Operator("", "", "/", ""));
 
 			add.level = op.first;
 			add.operators.push_back(op.second);
 			add.arguments.resize(2);
 			add.arguments[1].constant = "1";
-			if (expr.operations[i].operands[0].isConst()) {
-				add.arguments[0].constant = export_value(expr.operations[i].operands[0].cnst);
-			} else if (expr.operations[i].operands[0].isVar()) {
-				add.arguments[0].sub = export_net(expr.operations[i].operands[0].index, nets);
-			} else if (expr.operations[i].operands[0].isExpr()) {
-				add.arguments[0].sub = result[expr.operations[i].operands[0].index];
-			}
-		} else if (expr.operations[i].func == Operation::IDENTITY) {
+			add.arguments[0] = export_argument(result, i->operands[0], nets);
+		} else if (i->func == Operation::IDENTITY) {
 			auto op = export_operator(arithmetic::Operator("+", "", "", ""));
 
 			add.level = op.first;
 			add.arguments.resize(1);
-			if (expr.operations[i].operands[0].isConst()) {
-				add.arguments[0].constant = export_value(expr.operations[i].operands[0].cnst);
-			} else if (expr.operations[i].operands[0].isVar()) {
-				add.arguments[0].sub = export_net(expr.operations[i].operands[0].index, nets);
-			} else if (expr.operations[i].operands[0].isExpr()) {
-				add.arguments[0].sub = result[expr.operations[i].operands[0].index];
-			}
+			add.arguments[0] = export_argument(result, i->operands[0], nets);
 		} else {
-			auto op = export_operator(arithmetic::Operation::operators[expr.operations[i].func]);
+			auto op = export_operator(arithmetic::Operation::operators[i->func]);
 
 			add.level = op.first;
 			add.operators.push_back(op.second);
-			add.arguments.resize(expr.operations[i].operands.size());
-			for (int j = 0; j < (int)expr.operations[i].operands.size(); j++) {
-				if (expr.operations[i].operands[j].isConst()) {
-					add.arguments[j].constant = export_value(expr.operations[i].operands[j].cnst);
-				} else if (expr.operations[i].operands[j].isVar()) {
-					add.arguments[j].sub = export_net(expr.operations[i].operands[j].index, nets);
-				} else if (expr.operations[i].operands[j].isExpr()) {
-					add.arguments[j].sub = result[expr.operations[i].operands[j].index];
-				}
+			add.arguments.resize(i->operands.size());
+			for (int j = 0; j < (int)i->operands.size(); j++) {
+				add.arguments[j] = export_argument(result, i->operands[j], nets);
 			}
 		}
-		result.push_back(add);
+		if (i->exprIndex >= result.size()) {
+			result.resize(i->exprIndex+1);
+		}
+		result[i->exprIndex] = add;
 	}
 
-	if (result.size() > 0) {
-		return result.back();
-	} else {
-		parse_expression::expression add;
-		add.valid = true;
-		add.arguments.push_back(parse_expression::argument::constantOf("false"));
-		return add;
+	if (expr.top.isExpr()) {
+		if (expr.top.index < result.size()) {
+			return result[expr.top.index];
+		} else {
+			parse_expression::expression add;
+			add.valid = true;
+			add.arguments.push_back(parse_expression::argument::constantOf("0"));
+			return add;
+		}
 	}
+
+	auto op = export_operator(arithmetic::Operator("+", "", "", ""));
+	
+	parse_expression::expression add;
+	add.valid = true;
+	add.level = op.first;
+	add.arguments.push_back(export_argument(result, expr.top, nets));
+	return add;
 }
 
 parse_expression::assignment export_assignment(const Action &expr, ucs::ConstNetlist nets)
@@ -315,26 +315,19 @@ parse_expression::assignment export_assignment(const Action &expr, ucs::ConstNet
 	if (expr.variable != -1)
 		result.lvalue.push_back(export_net(expr.variable, nets));
 
-	if (expr.expr.operations.size() > 0)
-		result.rvalue = export_expression(expr.expr, nets);
-
 	// TODO(edward.bingham) we need type information about the lvalue here
-	bool isBool = (expr.expr.operations.empty() or
-		(expr.expr.operations.back().func == arithmetic::Operation::IDENTITY
-		and expr.expr.operations.back().operands.size() == 1u
-		and expr.expr.operations.back().operands[0].isConst()
-		and expr.expr.operations.back().operands[0].cnst.type == Value::BOOL));
-
-	if (isBool and expr.expr.isNeutral()) {
-		result.operation = "-";
+	Operand top = expr.expr.top;
+	if (top.isConst() and top.cnst.type == Value::BOOL) {
 		result.rvalue = parse_expression::expression();
-	} else if (isBool and expr.expr.isValid()) {
-		result.operation = "+";
-		result.rvalue = parse_expression::expression();
-	} else if (isBool and expr.expr.operations.back().operands[0].cnst.isUnstable()) {
-		result.operation = "~";
-		result.rvalue = parse_expression::expression();
+		if (top.cnst.isNeutral()) {
+			result.operation = "-";
+		} else if (top.cnst.isValid()) {
+			result.operation = "+";
+		} else /*if (top.cnst.isUnstable())*/ {
+			result.operation = "~";
+		}
 	} else {
+		result.rvalue = export_expression(expr.expr, nets);
 		result.operation = "=";
 	}
 

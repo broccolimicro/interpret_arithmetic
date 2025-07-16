@@ -221,15 +221,15 @@ Expression import_argument(const parse_expression::argument &syntax, ucs::Netlis
 		if (default_id != 0) {
 			name += "'" + ::to_string(default_id);
 		}
-		return Operand::varOf(import_net(name, nets, tokens, auto_define));
+		return Expression::varOf(import_net(name, nets, tokens, auto_define));
 	} else if (syntax.constant == "false") {
-		return Operand::boolOf(false);
+		return Expression::boolOf(false);
 	} else if (syntax.constant == "true") {
-		return Operand::boolOf(true);
+		return Expression::boolOf(true);
 	} else if (syntax.constant != "") {
-		return Operand::intOf(atoi(syntax.constant.c_str()));
+		return Expression::intOf(atoi(syntax.constant.c_str()));
 	}
-	return Operand::X();
+	return Expression::X();
 }
 
 Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
@@ -242,7 +242,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		} else {
 			error(syntax.to_string(), "unrecognized operation", __FILE__, __LINE__);
 		}
-		return Expression(false);
+		return Expression::boolOf(false);
 	}
 
 	bool err = false;
@@ -257,7 +257,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			err = true;
 		}
 		if (not err) {
-			sub.push_back(arithmetic::Expression(memb, import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Operand::stringOf("send")));
+			sub.push_back(arithmetic::Expression(memb, {import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Expression::stringOf("send")}));
 			for (int i = 1; i < (int)syntax.arguments.size() and not err; i++) {
 				sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
 			}
@@ -273,7 +273,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			err = true;
 		}
 		if (not err) {
-			sub.push_back(arithmetic::Expression(memb, import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Operand::stringOf("recv")));
+			sub.push_back(arithmetic::Expression(memb, {import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Expression::stringOf("recv")}));
 			for (int i = 1; i < (int)syntax.arguments.size() and not err; i++) {
 				sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
 			}
@@ -289,7 +289,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			err = true;
 		}
 		if (not err) {
-			sub.push_back(arithmetic::Expression(memb, import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Operand::stringOf("peek")));
+			sub.push_back(arithmetic::Expression(memb, {import_argument(syntax.arguments[0], nets, region, tokens, auto_define), Expression::stringOf("peek")}));
 			for (int i = 1; i < (int)syntax.arguments.size() and not err; i++) {
 				sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
 			}
@@ -303,7 +303,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 	} else if (not syntax.operators.empty()
 		and syntax.precedence.isModifier(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "::", "", "")) {
-		result = Operand::varOf(import_net(syntax, nets, default_id, tokens, auto_define));
+		result = Expression::varOf(import_net(syntax, nets, default_id, tokens, auto_define));
 	} else if (not syntax.operators.empty()
 		and syntax.precedence.isModifier(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", ".", "", "")) {
@@ -312,7 +312,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			err = true;
 		} else {
 			string cnst = syntax.arguments.back().to_string();
-			result = arithmetic::Expression(op, import_argument(syntax.arguments[0], nets, default_id, tokens, auto_define), arithmetic::Operand::stringOf(cnst));
+			result = arithmetic::Expression(op, {import_argument(syntax.arguments[0], nets, default_id, tokens, auto_define), Expression::stringOf(cnst)});
 		}
 	// DESIGN(edward.bingham) This moves "this" into the first
 	// argument of the function. So "a.b.c(d, e) becomes c(a.b,
@@ -332,10 +332,12 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		for (int i = 0; i < (int)syntax.arguments.size() and not err; i++) {
 			sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
 		}
-		if (not sub.empty() and not sub[0].operations.empty() and sub[0].operations.back().func == memb) {
-			arithmetic::Operand name = sub[0].operations.back().operands.back();
-			sub[0].operations.back().func = arithmetic::Operation::IDENTITY;
-			sub[0].operations.back().operands.pop_back();
+		if (not sub.empty() and sub[0].top.isExpr() and sub[0].getExpr(sub[0].top.index)->func == memb) {
+			Operation op = *sub[0].getExpr(sub[0].top.index);
+			arithmetic::Operand name = op.operands.back();
+			op.func = arithmetic::Operation::IDENTITY;
+			op.operands.pop_back();
+			sub[0].setExpr(op);
 			sub.insert(sub.begin(), name);
 		}
 		result = arithmetic::Expression(op, sub);
@@ -361,7 +363,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 				if (op < 0) {
 					err = true;
 				} else {
-					result.push(op, sub);
+					result = Expression(op, {result, sub});
 				}
 			}
 		}
@@ -373,7 +375,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 					if (op < 0) {
 						err = true;
 					} else {
-						result.push(op);
+						result.push(op, {result.top});
 					}
 				}
 			} else {
@@ -383,7 +385,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 					if (op < 0) {
 						err = true;
 					} else {
-						result.push(op);
+						result.push(op, {result.top});
 					}
 				}
 			}
@@ -419,12 +421,12 @@ Action import_action(const parse_expression::assignment &syntax, ucs::Netlist ne
 		if (syntax.lvalue.size() > 0) {
 			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
-		result.expr = Operand::boolOf(true);
+		result.expr = Expression::boolOf(true);
 	} else if (syntax.operation == "-") {
 		if (syntax.lvalue.size() > 0) {
 			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
-		result.expr = Operand::boolOf(false);
+		result.expr = Expression::boolOf(false);
 	} else if (syntax.operation == "=") {
 		if (syntax.lvalue.size() > 0) {
 			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
