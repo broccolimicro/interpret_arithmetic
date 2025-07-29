@@ -113,13 +113,46 @@ int import_net(const parse_expression::expression &syntax, ucs::Netlist nets, in
 	return import_net(name, nets, tokens, auto_define);
 }
 
-int import_operator(parse_expression::operation op) {
+arithmetic::Operation::OpType import_operator(parse_expression::operation op) {
 	for (int i = 0; i < (int)Operation::operators.size(); i++) {
 		if (areSame(Operation::operators[i], op)) {
-			return i;
+			switch (i) {
+				case 0:  return Operation::OpType::TYPE_BITWISE_NOT;
+				case 1:  return Operation::OpType::TYPE_IDENTITY;
+				case 2:  return Operation::OpType::TYPE_NEGATION;
+				case 3:  return Operation::OpType::TYPE_NEGATIVE;
+				case 4:  return Operation::OpType::TYPE_VALIDITY;
+				case 5:  return Operation::OpType::TYPE_BOOLEAN_NOT;
+				case 6:  return Operation::OpType::TYPE_INVERSE;
+				case 7:  return Operation::OpType::TYPE_BITWISE_OR;
+				case 8:  return Operation::OpType::TYPE_BITWISE_AND;
+				case 9:  return Operation::OpType::TYPE_BITWISE_XOR;
+				case 10: return Operation::OpType::TYPE_EQUAL;
+				case 11: return Operation::OpType::TYPE_NOT_EQUAL;
+				case 12: return Operation::OpType::TYPE_LESS;
+				case 13: return Operation::OpType::TYPE_GREATER;
+				case 14: return Operation::OpType::TYPE_LESS_EQUAL;
+				case 15: return Operation::OpType::TYPE_GREATER_EQUAL;
+				case 16: return Operation::OpType::TYPE_SHIFT_LEFT;
+				case 17: return Operation::OpType::TYPE_SHIFT_RIGHT;
+				case 18: return Operation::OpType::TYPE_ADD;
+				case 19: return Operation::OpType::TYPE_SUBTRACT;
+				case 20: return Operation::OpType::TYPE_MULTIPLY;
+				case 21: return Operation::OpType::TYPE_DIVIDE;
+				case 22: return Operation::OpType::TYPE_MOD;
+				case 23: return Operation::OpType::TYPE_TERNARY;
+				case 24: return Operation::OpType::TYPE_BOOLEAN_OR;
+				case 25: return Operation::OpType::TYPE_BOOLEAN_AND;
+				case 26: return Operation::OpType::TYPE_BOOLEAN_XOR;
+				case 27: return Operation::OpType::TYPE_ARRAY;
+				case 28: return Operation::OpType::TYPE_INDEX;
+				case 29: return Operation::OpType::TYPE_CALL;
+				case 30: return Operation::OpType::TYPE_MEMBER;
+				default: return Operation::OpType::TYPE_UNDEF;
+			}
 		}
 	}
-	return -1;
+	return arithmetic::Operation::OpType::TYPE_UNDEF;
 }
 
 State import_state(const parse_expression::assignment &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
@@ -251,8 +284,8 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		and syntax.precedence.isModifier(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "!", "", "")) {
 		vector<Expression> sub;
-		int memb = import_operator(parse_expression::operation("", ".", "", ""));
-		int call = import_operator(parse_expression::operation("", "(", ",", ")"));
+		arithmetic::Operation::OpType memb = import_operator(parse_expression::operation("", ".", "", ""));
+		arithmetic::Operation::OpType call = import_operator(parse_expression::operation("", "(", ",", ")"));
 		if (call < 0 or memb < 0) {
 			err = true;
 		}
@@ -267,8 +300,8 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		and syntax.precedence.isUnary(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "", "", "?")) {
 		vector<Expression> sub;
-		int memb = import_operator(parse_expression::operation("", ".", "", ""));
-		int call = import_operator(parse_expression::operation("", "(", ",", ")"));
+		arithmetic::Operation::OpType memb = import_operator(parse_expression::operation("", ".", "", ""));
+		arithmetic::Operation::OpType call = import_operator(parse_expression::operation("", "(", ",", ")"));
 		if (call < 0 or memb < 0) {
 			err = true;
 		}
@@ -283,8 +316,8 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		and syntax.precedence.isUnary(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("#", "", "", "")) {
 		vector<Expression> sub;
-		int memb = import_operator(parse_expression::operation("", ".", "", ""));
-		int call = import_operator(parse_expression::operation("", "(", ",", ")"));
+		arithmetic::Operation::OpType memb = import_operator(parse_expression::operation("", ".", "", ""));
+		arithmetic::Operation::OpType call = import_operator(parse_expression::operation("", "(", ",", ")"));
 		if (call < 0 or memb < 0) {
 			err = true;
 		}
@@ -307,7 +340,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 	} else if (not syntax.operators.empty()
 		and syntax.precedence.isModifier(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", ".", "", "")) {
-		int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
+		arithmetic::Operation::OpType op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
 		if (op < 0) {
 			err = true;
 		} else {
@@ -324,8 +357,8 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		and syntax.precedence.isModifier(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "(", ",", ")")) {
 		vector<Expression> sub;
-		int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
-		int memb = import_operator(parse_expression::operation("", ".", "", ""));
+		arithmetic::Operation::OpType op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
+		arithmetic::Operation::OpType memb = import_operator(parse_expression::operation("", ".", "", ""));
 		if (op < 0) {
 			err = true;
 		}
@@ -335,7 +368,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		if (not sub.empty() and sub[0].top.isExpr() and sub[0].getExpr(sub[0].top.index)->func == memb) {
 			Operation op = *sub[0].getExpr(sub[0].top.index);
 			arithmetic::Operand name = op.operands.back();
-			op.func = arithmetic::Operation::IDENTITY;
+			op.func = arithmetic::Operation::OpType::TYPE_IDENTITY;
 			op.operands.pop_back();
 			sub[0].setExpr(op);
 			sub.insert(sub.begin(), name);
@@ -345,7 +378,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 	} else if (not syntax.operators.empty()
     and syntax.precedence.isModifier(syntax.level)) {
 		vector<Expression> sub;
-		int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
+		arithmetic::Operation::OpType op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
 		if (op < 0) {
 			err = true;
 		}
@@ -359,7 +392,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			if (i == 0) {
 				result = sub;
 			} else {
-				int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i-1]));
+				arithmetic::Operation::OpType op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i-1]));
 				if (op < 0) {
 					err = true;
 				} else {
@@ -371,7 +404,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		if (syntax.arguments.size() == 1) {
 			if (syntax.precedence.isUnary(syntax.level)) {
 				for (int i = (int)syntax.operators.size()-1; i >= 0 and not err; i--) {
-					int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i]));
+					arithmetic::Operation::OpType op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i]));
 					if (op < 0) {
 						err = true;
 					} else {
@@ -380,7 +413,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 				}
 			} else {
 				for (int i = 0; i < (int)syntax.operators.size() and not err; i++) {
-					int op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i]));
+					arithmetic::Operation::OpType op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[i]));
 					
 					if (op < 0) {
 						err = true;
