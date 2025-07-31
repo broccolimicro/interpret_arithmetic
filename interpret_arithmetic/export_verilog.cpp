@@ -166,6 +166,9 @@ expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetli
 		add.arguments.resize(i->operands.size());
 		for (int j = 0; j < (int)i->operands.size(); j++) {
 			add.arguments[j] = export_argument(result, i->operands[j], nets);
+			if (i->isCommutative() and j >= 2) {
+				add.operations.push_back(add.operations.back());
+			}
 		}
 
 		if (i->exprIndex >= result.size()) {
