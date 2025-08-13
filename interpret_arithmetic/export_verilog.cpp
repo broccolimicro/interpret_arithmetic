@@ -143,7 +143,11 @@ argument export_argument(const vector<expression> &sub, arithmetic::Operand op, 
 	if (op.isConst()) {
 		result.constant = export_value(op.cnst);
 	} else if (op.isVar()) {
-		result.literal = ucs::Net(nets.netAt(op.index));
+		if (op.index < nets.netCount()) {
+			result.literal = ucs::Net(nets.netAt(op.index));
+		} else {
+			internal("", "no net at index " + ::to_string(op.index), __FILE__, __LINE__);
+		}
 	} else if (op.isExpr()) {
 		result.sub = sub[op.index];
 	} else if (op.isType()) {
