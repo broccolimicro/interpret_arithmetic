@@ -362,9 +362,18 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		if (op < 0) {
 			err = true;
 		}
-		for (int i = 0; i < (int)syntax.arguments.size() and not err; i++) {
+
+		// Detect function call string
+		//TODO: detect (((((myfunc)))))(ab), where func_name is recrusively buried
+		if (!syntax.arguments.empty() && !syntax.arguments[0].sub.valid && syntax.arguments[0].literal != "") {
+			sub.push_back(Expression::stringOf(syntax.arguments[0].to_string()));
+		} else {
+			sub.push_back(import_argument(syntax.arguments[0], nets, region, tokens, auto_define));
+		}
+		for (int i = 1; i < (int)syntax.arguments.size() and not err; i++) {
 			sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
 		}
+
 		if (not sub.empty() and sub[0].top.isExpr() and sub[0].getExpr(sub[0].top.index)->func == memb) {
 			Operation op = *sub[0].getExpr(sub[0].top.index);
 			arithmetic::Operand name = op.operands.back();
@@ -376,7 +385,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		result = arithmetic::Expression(op, sub);
 	// END DESIGN
 	} else if (not syntax.operators.empty()
-    and syntax.precedence.isModifier(syntax.level)) {
+		and syntax.precedence.isModifier(syntax.level)) {
 		vector<Expression> sub;
 		arithmetic::Operation::OpType op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
 		if (op < 0) {
