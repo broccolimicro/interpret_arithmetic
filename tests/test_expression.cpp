@@ -324,3 +324,27 @@ TEST(ExpressionParser, EmptyFunction) {
 	EXPECT_EQ(out.to_string(), "x+myfunc(z.f.y)");
 }
 
+TEST(ExpressionParser, BuiltinFunction) {
+	string test_code = "x + myfunc(y,z)";
+
+	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
+
+	tokenizer tokens;
+	tokens.register_token<parse::block_comment>(false);
+	tokens.register_token<parse::line_comment>(false);
+	expression::register_syntax(tokens);
+	tokens.insert("function", test_code);
+
+	MockNetlist v;
+
+	expression in(tokens);
+	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expression out = export_expression(expr, v);
+
+	EXPECT_TRUE(tokens.is_clean());
+	EXPECT_TRUE(out.valid);
+	EXPECT_EQ(out.to_string(), "x+myfunc(y,z)");
+}
