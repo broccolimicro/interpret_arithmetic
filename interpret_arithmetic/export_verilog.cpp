@@ -20,6 +20,7 @@ string export_value(const arithmetic::Value &v) {
 	} else if (v.type == arithmetic::Value::REAL) {
 		return ::to_string(v.rval);
 	}
+	internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
 	return "";
 }
 
