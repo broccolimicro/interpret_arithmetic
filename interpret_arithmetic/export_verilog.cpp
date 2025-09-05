@@ -85,7 +85,7 @@ expression export_expression(const arithmetic::State &s, ucs::ConstNetlist nets)
 }
 
 string export_operation(int op) {
-	if (op == arithmetic::Operation::BITWISE_NOT) {
+	if (op == arithmetic::Operation::WIRE_NOT) {
 		return "~";
 	} else if (op == arithmetic::Operation::IDENTITY) {
 		return "+";
@@ -97,11 +97,11 @@ string export_operation(int op) {
 		return "!";
 	} else if (op == arithmetic::Operation::INVERSE) {
 		return "1/";
-	} else if (op == arithmetic::Operation::BITWISE_OR) {
+	} else if (op == arithmetic::Operation::WIRE_OR) {
 		return "|";
-	} else if (op == arithmetic::Operation::BITWISE_AND) {
+	} else if (op == arithmetic::Operation::WIRE_AND) {
 		return "&";
-	} else if (op == arithmetic::Operation::BITWISE_XOR) {
+	} else if (op == arithmetic::Operation::WIRE_XOR) {
 		return "^";
 	} else if (op == arithmetic::Operation::EQUAL) {
 		return "==";

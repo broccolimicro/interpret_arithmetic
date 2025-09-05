@@ -116,43 +116,14 @@ int import_net(const parse_expression::expression &syntax, ucs::Netlist nets, in
 arithmetic::Operation::OpType import_operator(parse_expression::operation op) {
 	for (int i = 0; i < (int)Operation::operators.size(); i++) {
 		if (areSame(Operation::operators[i], op)) {
-			switch (i) {
-				case 0:  return Operation::OpType::TYPE_BITWISE_NOT;
-				case 1:  return Operation::OpType::TYPE_IDENTITY;
-				case 2:  return Operation::OpType::TYPE_NEGATION;
-				case 3:  return Operation::OpType::TYPE_NEGATIVE;
-				case 4:  return Operation::OpType::TYPE_VALIDITY;
-				case 5:  return Operation::OpType::TYPE_BOOLEAN_NOT;
-				case 6:  return Operation::OpType::TYPE_INVERSE;
-				case 7:  return Operation::OpType::TYPE_BITWISE_OR;
-				case 8:  return Operation::OpType::TYPE_BITWISE_AND;
-				case 9:  return Operation::OpType::TYPE_BITWISE_XOR;
-				case 10: return Operation::OpType::TYPE_EQUAL;
-				case 11: return Operation::OpType::TYPE_NOT_EQUAL;
-				case 12: return Operation::OpType::TYPE_LESS;
-				case 13: return Operation::OpType::TYPE_GREATER;
-				case 14: return Operation::OpType::TYPE_LESS_EQUAL;
-				case 15: return Operation::OpType::TYPE_GREATER_EQUAL;
-				case 16: return Operation::OpType::TYPE_SHIFT_LEFT;
-				case 17: return Operation::OpType::TYPE_SHIFT_RIGHT;
-				case 18: return Operation::OpType::TYPE_ADD;
-				case 19: return Operation::OpType::TYPE_SUBTRACT;
-				case 20: return Operation::OpType::TYPE_MULTIPLY;
-				case 21: return Operation::OpType::TYPE_DIVIDE;
-				case 22: return Operation::OpType::TYPE_MOD;
-				case 23: return Operation::OpType::TYPE_TERNARY;
-				case 24: return Operation::OpType::TYPE_BOOLEAN_OR;
-				case 25: return Operation::OpType::TYPE_BOOLEAN_AND;
-				case 26: return Operation::OpType::TYPE_BOOLEAN_XOR;
-				case 27: return Operation::OpType::TYPE_ARRAY;
-				case 28: return Operation::OpType::TYPE_INDEX;
-				case 29: return Operation::OpType::TYPE_CALL;
-				case 30: return Operation::OpType::TYPE_MEMBER;
-				default: return Operation::OpType::TYPE_UNDEF;
+			if (Operation::operators.is_valid(i)) {
+				return (Operation::OpType)i;
+			} else {
+				return Operation::OpType::UNDEF;
 			}
 		}
 	}
-	return arithmetic::Operation::OpType::TYPE_UNDEF;
+	return arithmetic::Operation::OpType::UNDEF;
 }
 
 State import_state(const parse_expression::assignment &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define)
@@ -377,7 +348,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		if (not sub.empty() and sub[0].top.isExpr() and sub[0].getExpr(sub[0].top.index)->func == memb) {
 			Operation op = *sub[0].getExpr(sub[0].top.index);
 			arithmetic::Operand name = op.operands.back();
-			op.func = arithmetic::Operation::OpType::TYPE_IDENTITY;
+			op.func = arithmetic::Operation::OpType::IDENTITY;
 			op.operands.pop_back();
 			sub[0].setExpr(op);
 			sub.insert(sub.begin(), name);
