@@ -5,23 +5,28 @@
 namespace parse_verilog {
 
 string export_value(const arithmetic::Value &v) {
-	if (v.type == arithmetic::Value::BOOL) {
-		if (v.isNeutral()) {
-			return "0";
-		} else if (v.isValid()) {
-			return "1";
-		} else if (v.isUnstable()) {
-			return "X";
-		} else {
-			return "U";
-		}
-	} else if (v.type == arithmetic::Value::INT) {
-		return ::to_string(v.ival);
-	} else if (v.type == arithmetic::Value::REAL) {
-		return ::to_string(v.rval);
+	switch (v.type) {
+		case arithmetic::Value::BOOL:
+		case arithmetic::Value::WIRE:
+			if (v.isNeutral()) {
+				return "0";
+			} else if (v.isValid()) {
+				return "1";
+			} else if (v.isUnstable()) {
+				return "X";
+			} else {
+				return "U";
+			}
+		case arithmetic::Value::INT:
+			return ::to_string(v.ival);
+		case arithmetic::Value::REAL:
+			return ::to_string(v.rval);
+		case arithmetic::Value::STRING:
+			return v.sval;
+		default:
+			internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
+			return "";
 	}
-	internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
-	return "";
 }
 
 expression export_expression(const arithmetic::Value &v) {
@@ -85,58 +90,61 @@ expression export_expression(const arithmetic::State &s, ucs::ConstNetlist nets)
 }
 
 string export_operation(int op) {
-	if (op == arithmetic::Operation::WIRE_NOT) {
-		return "~";
-	} else if (op == arithmetic::Operation::IDENTITY) {
-		return "+";
-	} else if (op == arithmetic::Operation::NEGATION) {
-		return "-";
-	} else if (op == arithmetic::Operation::VALIDITY) {
-		return "valid";
-	} else if (op == arithmetic::Operation::BOOLEAN_NOT) {
-		return "!";
-	} else if (op == arithmetic::Operation::INVERSE) {
-		return "1/";
-	} else if (op == arithmetic::Operation::WIRE_OR) {
-		return "|";
-	} else if (op == arithmetic::Operation::WIRE_AND) {
-		return "&";
-	} else if (op == arithmetic::Operation::WIRE_XOR) {
-		return "^";
-	} else if (op == arithmetic::Operation::EQUAL) {
-		return "==";
-	} else if (op == arithmetic::Operation::NOT_EQUAL) {
-		return "!=";
-	} else if (op == arithmetic::Operation::LESS) {
-		return "<";
-	} else if (op == arithmetic::Operation::GREATER) {
-		return ">";
-	} else if (op == arithmetic::Operation::LESS_EQUAL) {
-		return "<=";
-	} else if (op == arithmetic::Operation::GREATER_EQUAL) {
-		return ">=";
-	} else if (op == arithmetic::Operation::SHIFT_LEFT) {
-		return "<<";
-	} else if (op == arithmetic::Operation::SHIFT_RIGHT) {
-		return ">>";
-	} else if (op == arithmetic::Operation::ADD) {
-		return "+";
-	} else if (op == arithmetic::Operation::SUBTRACT) {
-		return "-";
-	} else if (op == arithmetic::Operation::MULTIPLY) {
-		return "*";
-	} else if (op == arithmetic::Operation::DIVIDE) {
-		return "/";
-	} else if (op == arithmetic::Operation::MOD) {
-		return "%";
-	} else if (op == arithmetic::Operation::BOOLEAN_OR) {
-		return "||";
-	} else if (op == arithmetic::Operation::BOOLEAN_AND) {
-		return "&&";
-	} else if (op == arithmetic::Operation::ARRAY) {
-		return ",";
+	switch (op) {
+		case arithmetic::Operation::WIRE_NOT:
+			return "~";
+		case arithmetic::Operation::IDENTITY:
+			return "+";
+		case arithmetic::Operation::NEGATION:
+			return "-";
+		case arithmetic::Operation::VALIDITY:
+			return "valid";
+		case arithmetic::Operation::BOOLEAN_NOT:
+			return "!";
+		case arithmetic::Operation::INVERSE:
+			return "1/";
+		case arithmetic::Operation::WIRE_OR:
+			return "|";
+		case arithmetic::Operation::WIRE_AND:
+			return "&";
+		case arithmetic::Operation::WIRE_XOR:
+			return "^";
+		case arithmetic::Operation::EQUAL:
+			return "==";
+		case arithmetic::Operation::NOT_EQUAL:
+			return "!=";
+		case arithmetic::Operation::LESS:
+			return "<";
+		case arithmetic::Operation::GREATER:
+			return ">";
+		case arithmetic::Operation::LESS_EQUAL:
+			return "<=";
+		case arithmetic::Operation::GREATER_EQUAL:
+			return ">=";
+		case arithmetic::Operation::SHIFT_LEFT:
+			return "<<";
+		case arithmetic::Operation::SHIFT_RIGHT:
+			return ">>";
+		case arithmetic::Operation::ADD:
+			return "+";
+		case arithmetic::Operation::SUBTRACT:
+			return "-";
+		case arithmetic::Operation::MULTIPLY:
+			return "*";
+		case arithmetic::Operation::DIVIDE:
+			return "/";
+		case arithmetic::Operation::MOD:
+			return "%";
+		case arithmetic::Operation::BOOLEAN_OR:
+			return "||";
+		case arithmetic::Operation::BOOLEAN_AND:
+			return "&&";
+		case arithmetic::Operation::ARRAY:
+			return ",";
+		default:
+			internal("", "unrecognized operation in export_operation()", __FILE__, __LINE__);
+			return "";
 	}
-	return "";
 }
 
 argument export_argument(const vector<expression> &sub, arithmetic::Operand op, ucs::ConstNetlist nets) {
