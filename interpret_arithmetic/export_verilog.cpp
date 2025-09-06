@@ -5,27 +5,33 @@
 namespace parse_verilog {
 
 string export_value(const arithmetic::Value &v) {
-	switch (v.type) {
-		case arithmetic::Value::BOOL:
-		case arithmetic::Value::WIRE:
-			if (v.isNeutral()) {
-				return "0";
-			} else if (v.isValid()) {
+	if (v.isNeutral()) {
+		return "0";
+
+	} else if (v.isValid()) {
+		switch (v.type) {
+			case arithmetic::Value::BOOL:
+			case arithmetic::Value::WIRE:
 				return "1";
-			} else if (v.isUnstable()) {
-				return "X";
-			} else {
-				return "U";
-			}
-		case arithmetic::Value::INT:
-			return ::to_string(v.ival);
-		case arithmetic::Value::REAL:
-			return ::to_string(v.rval);
-		case arithmetic::Value::STRING:
-			return v.sval;
-		default:
-			internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
-			return "";
+
+			case arithmetic::Value::INT:
+				return ::to_string(v.ival);
+
+			case arithmetic::Value::REAL:
+				return ::to_string(v.rval);
+
+			case arithmetic::Value::STRING:
+				return v.sval;
+
+			default:
+				internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
+				return "";
+		}
+	} else if (v.isUnstable()) {
+		return "X";
+
+	} else {
+		return "U";
 	}
 }
 
