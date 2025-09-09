@@ -1,6 +1,7 @@
 #include "export_verilog.h"
-#include <common/message.h>
+
 #include <arithmetic/algorithm.h>
+#include <common/message.h>
 
 namespace parse_verilog {
 
@@ -24,7 +25,7 @@ string export_value(const arithmetic::Value &v) {
 				return v.sval;
 
 			default:
-				internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
+				internal("", "unrecognized valid value: " + std::to_string(v), __FILE__, __LINE__);
 				return "";
 		}
 	} else if (v.isUnstable()) {
@@ -148,7 +149,7 @@ string export_operation(int op) {
 		case arithmetic::Operation::ARRAY:
 			return ",";
 		default:
-			internal("", "unrecognized operation in export_operation()", __FILE__, __LINE__);
+			internal("", "unrecognized operation " + std::to_string(op), __FILE__, __LINE__);
 			return "";
 	}
 }
@@ -161,14 +162,14 @@ argument export_argument(const vector<expression> &sub, arithmetic::Operand op, 
 		if (op.index < nets.netCount()) {
 			result.literal = ucs::Net(nets.netAt(op.index));
 		} else {
-			internal("", "no net at index " + ::to_string(op.index), __FILE__, __LINE__);
+			internal("", "no net at index " + std::to_string(op.index), __FILE__, __LINE__);
 		}
 	} else if (op.isExpr()) {
 		result.sub = sub[op.index];
 	} else if (op.isType()) {
-		internal("", "unable to export type expression", __FILE__, __LINE__);
+		internal("", "unable to export type expression: sub[0] -> " + sub[0].to_string(), __FILE__, __LINE__);
 	} else {
-		internal("", "unable to export undefined expression", __FILE__, __LINE__);
+		internal("", "unable to export undefined expression: sub[0] -> " + sub[0].to_string(), __FILE__, __LINE__);
 	}
 	return result;
 }
