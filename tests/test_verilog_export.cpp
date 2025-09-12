@@ -74,7 +74,7 @@ TEST(VerilogExportParser, ArithmeticOperations) {
 
 TEST(VerilogExportParser, ComparisonOperations) {
 	// Test exporting comparison operations to Verilog
-	string test_code = "a < b & c == d";
+	string test_code = "a < b && c == d";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -139,7 +139,7 @@ TEST(VerilogExportParser, ExportValue) {
 
 TEST(VerilogExportParser, ComplexExpression) {
 	// Test exporting complex expressions to Verilog
-	string test_code = "(a & b) | (c & ~d) | (e < f)";
+	string test_code = "(a && b) || (c && !d) || (e < f)";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);

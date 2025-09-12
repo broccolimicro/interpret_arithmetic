@@ -133,10 +133,11 @@ State import_state(const parse_expression::assignment &syntax, ucs::Netlist nets
 		region = atoi(syntax.region.c_str());
 	}
 
+	// TODO(edward.bingham) figure out net types
 	if (syntax.operation == "+") {
-		return State(import_net(syntax.lvalue[0], nets, region, tokens, auto_define), true);
+		return State(import_net(syntax.lvalue[0], nets, region, tokens, auto_define), Value::vdd());
 	} else if (syntax.operation == "-") {
-		return State(import_net(syntax.lvalue[0], nets, region, tokens, auto_define), false);
+		return State(import_net(syntax.lvalue[0], nets, region, tokens, auto_define), Value::gnd());
 	} else if (syntax.operation == "~") {
 		return State(import_net(syntax.lvalue[0], nets, region, tokens, auto_define), Value::X());
 	} else if (syntax.operation == "=") {
@@ -147,6 +148,10 @@ State import_state(const parse_expression::assignment &syntax, ucs::Netlist nets
 				result.set(v, false);
 			} else if (syntax.rvalue.arguments[0].constant == "true") {
 				result.set(v, true);
+			} else if (syntax.rvalue.arguments[0].constant == "gnd") {
+				result.set(v, Value::gnd());
+			} else if (syntax.rvalue.arguments[0].constant == "vdd") {
+				result.set(v, Value::vdd());
 			} else if (syntax.rvalue.arguments[0].constant != "") {
 				result.set(v, atoi(syntax.rvalue.arguments[0].constant.c_str()));
 			} else {
@@ -179,40 +184,39 @@ State import_state(const parse_expression::composition &syntax, ucs::Netlist net
 		region = atoi(syntax.region.c_str());
 	}
 
-	if (syntax.level >= (int)syntax.precedence.size())
-	{
-		if (tokens != NULL)
-		{
+	if (syntax.level >= (int)syntax.precedence.size()) {
+		if (tokens != NULL) {
 			tokens->load(&syntax);
 			tokens->error("unrecognized operation", __FILE__, __LINE__);
-		}
-		else
+		} else {
 			error(syntax.to_string(), "unrecognized operation", __FILE__, __LINE__);
+		}
 		return State();
-	}
-	else if (syntax.literals.size() == 0 && syntax.compositions.size() == 0)
+	} else if (syntax.literals.size() == 0 && syntax.compositions.size() == 0) {
 		return State();
-	else if (syntax.precedence[syntax.level] == ":" && syntax.literals.size() + syntax.compositions.size() > 1)
-	{
-		if (tokens != NULL)
-		{
+	} else if (syntax.precedence[syntax.level] == ":" && syntax.literals.size() + syntax.compositions.size() > 1) {
+		if (tokens != NULL) {
 			tokens->load(&syntax);
 			tokens->error("illegal disjunction", __FILE__, __LINE__);
-		}
-		else
+		} else {
 			error(syntax.to_string(), "illegal disjunction", __FILE__, __LINE__);
+		}
 		return State();
 	}
 
 	State result;
 
-	for (int i = 0; i < (int)syntax.literals.size(); i++)
-		if (syntax.literals[i].valid)
+	for (int i = 0; i < (int)syntax.literals.size(); i++) {
+		if (syntax.literals[i].valid) {
 			result &= import_state(syntax.literals[i], nets, region, tokens, auto_define);
+		}
+	}
 
-	for (int i = 0; i < (int)syntax.compositions.size(); i++)
-		if (syntax.compositions[i].valid)
+	for (int i = 0; i < (int)syntax.compositions.size(); i++) {
+		if (syntax.compositions[i].valid) {
 			result &= import_state(syntax.compositions[i], nets, region, tokens, auto_define);
+		}
+	}
 
 	return result;
 }
@@ -230,6 +234,10 @@ Expression import_argument(const parse_expression::argument &syntax, ucs::Netlis
 		return Expression::boolOf(false);
 	} else if (syntax.constant == "true") {
 		return Expression::boolOf(true);
+	} else if (syntax.constant == "gnd") {
+		return Expression::gnd();
+	} else if (syntax.constant == "vdd") {
+		return Expression::vdd();
 	} else if (syntax.constant != "") {
 		return Expression::intOf(atoi(syntax.constant.c_str()));
 	}
@@ -304,10 +312,6 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "'", "", "")) {
 		string cnst = import_constant(syntax.arguments.back(), tokens);
 		result = import_argument(syntax.arguments[0], nets, atoi(cnst.c_str()), tokens, auto_define);
-	} else if (not syntax.operators.empty()
-		and syntax.precedence.isModifier(syntax.level)
-		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", "::", "", "")) {
-		result = Expression::varOf(import_net(syntax, nets, default_id, tokens, auto_define));
 	} else if (not syntax.operators.empty()
 		and syntax.precedence.isModifier(syntax.level)
 		and syntax.precedence.at(syntax.level, syntax.operators.back()).is("", ".", "", "")) {
@@ -434,12 +438,12 @@ Action import_action(const parse_expression::assignment &syntax, ucs::Netlist ne
 		if (syntax.lvalue.size() > 0) {
 			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
-		result.expr = Expression::boolOf(true);
+		result.expr = Expression::vdd();
 	} else if (syntax.operation == "-") {
 		if (syntax.lvalue.size() > 0) {
 			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
-		result.expr = Expression::boolOf(false);
+		result.expr = Expression::gnd();
 	} else if (syntax.operation == "=") {
 		if (syntax.lvalue.size() > 0) {
 			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);

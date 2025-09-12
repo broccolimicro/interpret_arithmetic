@@ -97,16 +97,18 @@ pair<int, int> export_operator(arithmetic::Operator op) {
 }
 
 string export_value(const Value &v) {
-	if (v.type == Value::BOOL) {
+	if (v.isUnstable()) {
+		return "unstable";
+	} else if (v.isUnknown()) {
+		return "undefined";
+	} else if (v.type == Value::WIRE) {
 		if (v.isNeutral()) {
-			return "false";
+			return "gnd";
 		} else if (v.isValid()) {
-			return "true";
-		} else if (v.isUnstable()) {
-			return "unstable";
-		} else if (v.isUnknown()) {
-			return "undefined";
+			return "vdd";
 		}
+	} else if (v.type == Value::BOOL) {
+		return ::to_string(v.bval);
 	} else if (v.type == Value::INT) {
 		return ::to_string(v.ival);
 	} else if (v.type == Value::REAL) {
@@ -191,12 +193,12 @@ parse_expression::composition export_composition(const State &s, ucs::ConstNetli
 			parse_expression::assignment assign;
 			assign.valid = true;
 			assign.lvalue.push_back(export_net(i, nets));
-			if (s.values[i].type == Value::BOOL and s.values[i].isNeutral()) {
-				assign.operation = "-";
-			} else if (s.values[i].type == Value::BOOL and s.values[i].isValid()) {
-				assign.operation = "+";
-			} else if (s.values[i].type == Value::BOOL and s.values[i].isUnstable()) {
+			if (s.values[i].isUnstable()) {
 				assign.operation = "~";
+			} else if (s.values[i].isNeutral()) {
+				assign.operation = "-";
+			} else if (s.values[i].type == Value::WIRE and s.values[i].isValid()) {
+				assign.operation = "+";
 			} else {
 				assign.operation = "=";
 				assign.rvalue = export_expression(s.values[i], nets);
@@ -251,12 +253,13 @@ parse_expression::expression export_expression(const Expression &expr, ucs::Cons
 			add.arguments[0] = export_argument(result, i->operands[0], nets);
 			add.arguments[1].constant = "0";
 		} else if (i->func == Operation::VALIDITY) {
-			auto op = export_operator(arithmetic::Operator("(bool)", "", "", ""));
+			auto op = export_operator(arithmetic::Operator("", "(", ",", ")"));
 
 			add.level = op.first;
 			add.operators.push_back(op.second);
-			add.arguments.resize(1);
-			add.arguments[0] = export_argument(result, i->operands[0], nets);
+			add.arguments.resize(2);
+			add.arguments[0].constant = "valid";
+			add.arguments[1] = export_argument(result, i->operands[0], nets);
 		} else if (i->func == Operation::INVERSE) {
 			auto op = export_operator(arithmetic::Operator("", "", "/", ""));
 
@@ -317,15 +320,15 @@ parse_expression::assignment export_assignment(const Action &expr, ucs::ConstNet
 
 	// TODO(edward.bingham) we need type information about the lvalue here
 	Operand top = expr.expr.top;
-	if (top.isConst() and top.cnst.type == Value::BOOL) {
+	if (top.isConst() and top.cnst.isNeutral()) {
 		result.rvalue = parse_expression::expression();
-		if (top.cnst.isNeutral()) {
-			result.operation = "-";
-		} else if (top.cnst.isValid()) {
-			result.operation = "+";
-		} else /*if (top.cnst.isUnstable())*/ {
-			result.operation = "~";
-		}
+		result.operation = "-";
+	} else if (top.isConst() and top.cnst.isUnstable()) {
+		result.rvalue = parse_expression::expression();
+		result.operation = "~";
+	} else if (top.isConst() and top.cnst.type == Value::WIRE and top.cnst.isValid()) {
+		result.rvalue = parse_expression::expression();
+		result.operation = "+";
 	} else {
 		result.rvalue = export_expression(expr.expr, nets);
 		result.operation = "=";

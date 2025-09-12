@@ -6,34 +6,25 @@
 namespace parse_verilog {
 
 string export_value(const arithmetic::Value &v) {
-	if (v.isNeutral()) {
-		return "0";
-
-	} else if (v.isValid()) {
-		switch (v.type) {
-			case arithmetic::Value::BOOL:
-			case arithmetic::Value::WIRE:
-				return "1";
-
-			case arithmetic::Value::INT:
-				return ::to_string(v.ival);
-
-			case arithmetic::Value::REAL:
-				return ::to_string(v.rval);
-
-			case arithmetic::Value::STRING:
-				return v.sval;
-
-			default:
-				internal("", "unrecognized valid value: " + std::to_string(v), __FILE__, __LINE__);
-				return "";
-		}
-	} else if (v.isUnstable()) {
+	if (v.isUnstable()) {
 		return "X";
-
-	} else {
+	} else if (v.isUnknown()) {
 		return "U";
+	} else if (v.isNeutral()) {
+		return "0";
+	} else if (v.type == arithmetic::Value::WIRE) {
+		return "1";
+	} else if (v.type == arithmetic::Value::BOOL) {
+		return v.bval ? "1'b1" : "1'b0";
+	} else if (v.type == arithmetic::Value::INT) {
+		return ::to_string(v.ival);
+	} else if (v.type == arithmetic::Value::REAL) {
+		return ::to_string(v.rval);
+	} else if (v.type == arithmetic::Value::STRING) {
+		return v.sval;
 	}
+	internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
+	return "";
 }
 
 expression export_expression(const arithmetic::Value &v) {
@@ -159,7 +150,7 @@ argument export_argument(const vector<expression> &sub, arithmetic::Operand op, 
 	if (op.isConst()) {
 		result.constant = export_value(op.cnst);
 	} else if (op.isVar()) {
-		if (op.index < nets.netCount()) {
+		if ((int)op.index < nets.netCount()) {
 			result.literal = ucs::Net(nets.netAt(op.index));
 		} else {
 			internal("", "no net at index " + std::to_string(op.index), __FILE__, __LINE__);

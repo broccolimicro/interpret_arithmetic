@@ -34,7 +34,7 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 
 	expression out = export_expression(expr, v);
 
@@ -61,7 +61,7 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -111,7 +111,7 @@ TEST(ExpressionParser, ComparisonOperations) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -137,7 +137,7 @@ TEST(ExpressionParser, MixedOperations) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -163,7 +163,7 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -189,7 +189,7 @@ TEST(ExpressionParser, BitShifting) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -215,7 +215,7 @@ TEST(ExpressionParser, Constants) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -225,7 +225,7 @@ TEST(ExpressionParser, Constants) {
 
 TEST(ExpressionParser, TrueFalse) {
 	// Test gnd and vdd constants
-	string test_code = "a & true | b & false";
+	string test_code = "a & vdd | b & gnd";
 	
 	expression::register_precedence(createPrecedence());
 	assignment::lvalueLevel = 13;
@@ -241,12 +241,12 @@ TEST(ExpressionParser, TrueFalse) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "(bool)a");
+	EXPECT_EQ(out.to_string(), "valid(a)");
 }
 
 TEST(ExpressionParser, DifferentRegions) {
@@ -291,7 +291,7 @@ TEST(ExpressionParser, Function) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -316,7 +316,7 @@ TEST(ExpressionParser, EmptyFunction) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -341,10 +341,35 @@ TEST(ExpressionParser, BuiltinFunction) {
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
-	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
 	EXPECT_EQ(out.to_string(), "x+myfunc(y,z)");
+}
+
+TEST(ExpressionParser, arrays) {
+	string test_code = "x[y] + [a, b, c][2]";
+
+	expression::register_precedence(createPrecedence());
+	assignment::lvalueLevel = 13;
+
+	tokenizer tokens;
+	tokens.register_token<parse::block_comment>(false);
+	tokens.register_token<parse::line_comment>(false);
+	expression::register_syntax(tokens);
+	tokens.insert("function", test_code);
+
+	MockNetlist v;
+
+	expression in(tokens);
+	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
+	expression out = export_expression(expr, v);
+
+	EXPECT_TRUE(tokens.is_clean());
+	EXPECT_TRUE(out.valid);
+	EXPECT_EQ(out.to_string(), "x[y]+[a,b,c][2]");
 }
