@@ -349,7 +349,19 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 			sub.push_back(import_argument(syntax.arguments[i], nets, region, tokens, auto_define));
 		}
 
-		if (not sub.empty() and sub[0].top.isExpr() and sub[0].getExpr(sub[0].top.index)->func == memb) {
+		if (not sub.empty() and sub[0].top.isConst() and sub[0].top.cnst.type == Value::STRING) {
+			if (sub[0].top.cnst.sval == "valid") {
+				if (sub.size() > 2u) {
+					error("", "valid() function expects 1 argument, found " + ::to_string(sub.size()-1), __FILE__, __LINE__);
+				}
+				return isValid(sub[1]);
+			} else if (sub[0].top.cnst.sval == "true") {
+				if (sub.size() > 2u) {
+					error("", "valid() function expects 1 argument, found " + ::to_string(sub.size()-1), __FILE__, __LINE__);
+				}
+				return isTrue(sub[1]);
+			}
+		} else if (not sub.empty() and sub[0].top.isExpr() and sub[0].getExpr(sub[0].top.index)->func == memb) {
 			Operation op = *sub[0].getExpr(sub[0].top.index);
 			arithmetic::Operand name = op.operands.back();
 			op.func = arithmetic::Operation::OpType::IDENTITY;
