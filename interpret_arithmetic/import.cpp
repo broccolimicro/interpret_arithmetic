@@ -354,12 +354,14 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 				if (sub.size() > 2u) {
 					error("", "valid() function expects 1 argument, found " + ::to_string(sub.size()-1), __FILE__, __LINE__);
 				}
-				return isValid(sub[1]);
+				op = arithmetic::Operation::VALIDITY;
+				sub.erase(sub.begin());
 			} else if (sub[0].top.cnst.sval == "true") {
 				if (sub.size() > 2u) {
 					error("", "valid() function expects 1 argument, found " + ::to_string(sub.size()-1), __FILE__, __LINE__);
 				}
-				return isTrue(sub[1]);
+				op = arithmetic::Operation::TRUTHINESS;
+				sub.erase(sub.begin());
 			}
 		} else if (not sub.empty() and sub[0].top.isExpr() and sub[0].getExpr(sub[0].top.index)->func == memb) {
 			Operation op = *sub[0].getExpr(sub[0].top.index);
