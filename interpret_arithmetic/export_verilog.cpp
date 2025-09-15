@@ -156,11 +156,21 @@ argument export_argument(const vector<expression> &sub, arithmetic::Operand op, 
 			internal("", "no net at index " + std::to_string(op.index), __FILE__, __LINE__);
 		}
 	} else if (op.isExpr()) {
-		result.sub = sub[op.index];
+		if (op.index < sub.size()) {
+			result.sub = sub[op.index];
+		} else {
+			internal("", "no expression at index " + std::to_string(op.index), __FILE__, __LINE__);
+		}
 	} else if (op.isType()) {
-		internal("", "unable to export type expression: sub[0] -> " + sub[0].to_string(), __FILE__, __LINE__);
+		internal("", "unable to export type", __FILE__, __LINE__);
+		for (int i = 0; i < (int)sub.size(); i++) {
+			note("", sub[i].to_string(), __FILE__, __LINE__);
+		}
 	} else {
-		internal("", "unable to export undefined expression: sub[0] -> " + sub[0].to_string(), __FILE__, __LINE__);
+		internal("", "unable to export undefined", __FILE__, __LINE__);
+		for (int i = 0; i < (int)sub.size(); i++) {
+			note("", sub[i].to_string(), __FILE__, __LINE__);
+		}
 	}
 	return result;
 }
