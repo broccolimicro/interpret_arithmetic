@@ -4,9 +4,12 @@
 namespace arithmetic {
 
 string import_constant(const parse_expression::expression &syntax, tokenizer *tokens) {
+	if (tokens != nullptr) {
+		tokens->load(&syntax);
+	}
+
 	if (not syntax.valid or syntax.level < 0 or syntax.arguments.empty()) {
 		if (tokens != nullptr) {
-			tokens->load(&syntax);
 			tokens->internal("invalid expression", __FILE__, __LINE__);
 		} else {
 			internal("", "invaid expression", __FILE__, __LINE__);
@@ -19,7 +22,6 @@ string import_constant(const parse_expression::expression &syntax, tokenizer *to
 		result += import_constant(syntax.arguments[0], tokens);
 	} else {
 		if (tokens != nullptr) {
-			tokens->load(&syntax);
 			tokens->internal("sub expressions in constants not supported", __FILE__, __LINE__);
 		} else {
 			internal("", "sub expressions in constants not supported", __FILE__, __LINE__);
@@ -34,7 +36,11 @@ string import_constant(const parse_expression::argument &syntax, tokenizer *toke
 	if (syntax.sub.valid) {
 		return import_constant(syntax.sub, tokens);
 	} else if (not syntax.literal.empty()) {
-		internal(syntax.literal, "expected constant-valued expression", __FILE__, __LINE__);
+		if (tokens != nullptr) {
+			tokens->internal("expected constant-valued expression", __FILE__, __LINE__);
+		} else {
+			internal("", "expected constant-valued expression", __FILE__, __LINE__);
+		}
 		return "0";
 	}
 	return syntax.constant;
@@ -51,9 +57,12 @@ string import_net_name(const parse_expression::argument &syntax, tokenizer *toke
 }
 
 string import_net_name(const parse_expression::expression &syntax, tokenizer *tokens) {
+	if (tokens != nullptr) {
+		tokens->load(&syntax);
+	}
+
 	if (not syntax.valid or syntax.level < 0 or syntax.arguments.empty()) {
 		if (tokens != nullptr) {
-			tokens->load(&syntax);
 			tokens->internal("invalid expression", __FILE__, __LINE__);
 		} else {
 			internal("", "invaid expression", __FILE__, __LINE__);
@@ -247,9 +256,12 @@ Expression import_argument(const parse_expression::argument &syntax, ucs::Netlis
 Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	int region = default_id;
 
+	if (tokens != NULL) {
+		tokens->load(&syntax);
+	}
+
 	if (not syntax.precedence.isValidLevel(syntax.level)) {
 		if (tokens != NULL) {
-			tokens->load(&syntax);
 			tokens->error("unrecognized operation", __FILE__, __LINE__);
 		} else {
 			error(syntax.to_string(), "unrecognized operation", __FILE__, __LINE__);
@@ -444,26 +456,26 @@ Action import_action(const parse_expression::assignment &syntax, ucs::Netlist ne
 
 	Action result;
 	if (syntax.operation.empty()) {
-		result.variable = -1;
+		result.lvalue = Expression::vdd();
 		if (syntax.lvalue[0].valid) {
-			result.expr = import_expression(syntax.lvalue[0], nets, region, tokens, auto_define);
+			result.rvalue = import_expression(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
 	} else if (syntax.operation == "+") {
 		if (syntax.lvalue.size() > 0) {
-			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
+			result.lvalue = import_expression(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
-		result.expr = Expression::vdd();
+		result.rvalue = Expression::vdd();
 	} else if (syntax.operation == "-") {
 		if (syntax.lvalue.size() > 0) {
-			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
+			result.lvalue = import_expression(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
-		result.expr = Expression::gnd();
+		result.rvalue = Expression::gnd();
 	} else if (syntax.operation == "=") {
 		if (syntax.lvalue.size() > 0) {
-			result.variable = import_net(syntax.lvalue[0], nets, region, tokens, auto_define);
+			result.lvalue = import_expression(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
 		if (syntax.rvalue.valid) {
-			result.expr = import_expression(syntax.rvalue, nets, region, tokens, auto_define);
+			result.rvalue = import_expression(syntax.rvalue, nets, region, tokens, auto_define);
 		}
 	}
 
