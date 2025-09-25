@@ -230,6 +230,22 @@ State import_state(const parse_expression::composition &syntax, ucs::Netlist net
 	return result;
 }
 
+string argument_literal(const parse_expression::expression &syntax) {
+	if (not syntax.operators.empty() or syntax.arguments.size() != 1u) {
+		return "";
+	}
+	return argument_literal(syntax.arguments[0]);	
+}
+
+string argument_literal(const parse_expression::argument &syntax) {
+	if (syntax.sub.valid) {
+		return argument_literal(syntax.sub);
+	} else if (syntax.literal != "") {
+		return syntax.literal;
+	}
+	return "";
+}
+
 Expression import_argument(const parse_expression::argument &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define) {
 	if (syntax.sub.valid) {
 		return import_expression(syntax.sub, nets, default_id, tokens, auto_define);
@@ -352,8 +368,13 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 
 		// Detect function call string
 		//TODO: detect (((((myfunc)))))(ab), where func_name is recrusively buried
-		if (!syntax.arguments.empty() && !syntax.arguments[0].sub.valid && syntax.arguments[0].literal != "") {
-			sub.push_back(Expression::stringOf(syntax.arguments[0].to_string()));
+		string first = "";
+		if (not syntax.arguments.empty()) {
+			first = argument_literal(syntax.arguments[0]);
+		}
+
+		if (not first.empty()) {
+			sub.push_back(Expression::stringOf(first));
 		} else {
 			sub.push_back(import_argument(syntax.arguments[0], nets, region, tokens, auto_define));
 		}
@@ -370,7 +391,7 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 				sub.erase(sub.begin());
 			} else if (sub[0].top.cnst.sval == "true") {
 				if (sub.size() > 2u) {
-					error("", "valid() function expects 1 argument, found " + ::to_string(sub.size()-1), __FILE__, __LINE__);
+					error("", "true() function expects 1 argument, found " + ::to_string(sub.size()-1), __FILE__, __LINE__);
 				}
 				op = arithmetic::Operation::TRUTHINESS;
 				sub.erase(sub.begin());
@@ -386,7 +407,8 @@ Expression import_expression(const parse_expression::expression &syntax, ucs::Ne
 		result = arithmetic::Expression(op, sub);
 	// END DESIGN
 	} else if (not syntax.operators.empty()
-		and syntax.precedence.isModifier(syntax.level)) {
+		and (syntax.precedence.isModifier(syntax.level)
+			or syntax.precedence.isGroup(syntax.level))) {
 		vector<Expression> sub;
 		arithmetic::Operation::OpType op = import_operator(syntax.precedence.at(syntax.level, syntax.operators[0]));
 		if (op < 0) {
@@ -454,9 +476,11 @@ Action import_action(const parse_expression::assignment &syntax, ucs::Netlist ne
 		region = atoi(syntax.region.c_str());
 	}
 
+	//cout << "import action " << syntax.to_string("") << endl;
+
 	Action result;
 	if (syntax.operation.empty()) {
-		result.lvalue = Expression::vdd();
+		result.lvalue = Expression::undef();
 		if (syntax.lvalue[0].valid) {
 			result.rvalue = import_expression(syntax.lvalue[0], nets, region, tokens, auto_define);
 		}
@@ -478,6 +502,7 @@ Action import_action(const parse_expression::assignment &syntax, ucs::Netlist ne
 			result.rvalue = import_expression(syntax.rvalue, nets, region, tokens, auto_define);
 		}
 	}
+	//cout << result.lvalue << " = " << result.rvalue << endl;
 
 	return result;
 }

@@ -24,6 +24,8 @@ int import_net(const parse_expression::expression &syntax, ucs::Netlist nets, in
 // TODO(edward.bingham) all above functions are identical to interpret_boolean implementations 
 
 State import_state(const parse_expression::composition &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
+string argument_literal(const parse_expression::expression &syntax);
+string argument_literal(const parse_expression::argument &syntax);
 Expression import_argument(const parse_expression::argument &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
 Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define);
 Action import_action(const parse_expression::assignment &syntax, ucs::Netlist nets, int default_id, tokenizer *tokens, bool auto_define);

@@ -97,10 +97,12 @@ pair<int, int> export_operator(arithmetic::Operator op) {
 }
 
 string export_value(const Value &v) {
-	if (v.isUnstable()) {
+	if (v.isUndef()) {
+		return "undef";
+	} else if (v.isUnstable()) {
 		return "unstable";
 	} else if (v.isUnknown()) {
-		return "undefined";
+		return "unknown";
 	} else if (v.type == Value::WIRE) {
 		if (v.isNeutral()) {
 			return "gnd";
@@ -122,8 +124,24 @@ string export_value(const Value &v) {
 parse_expression::expression export_expression(const Value &v, ucs::ConstNetlist nets) {
 	parse_expression::expression result;
 	result.valid = true;
-	result.level = parse_expression::expression::precedence.size();
-	result.arguments.push_back(parse_expression::argument::constantOf(export_value(v)));
+	if (v.isValid() and v.type == Value::ARRAY) {
+		auto op = export_operator(arithmetic::Operator("[", "", ",", "]"));
+		result.level = op.first;
+		result.operators.push_back(op.second);
+		for (size_t i = 0; i < v.arr.size(); i++) {
+			result.arguments.push_back(parse_expression::argument(export_expression(v.arr[i], nets)));
+		}
+	} else if (v.isValid() and v.type == Value::STRUCT) {
+		auto op = export_operator(arithmetic::Operator("{", "", ",", "}"));
+		result.level = op.first;
+		result.operators.push_back(op.second);
+		for (size_t i = 0; i < v.arr.size(); i++) {
+			result.arguments.push_back(parse_expression::argument(export_expression(v.arr[i], nets)));
+		}
+	} else {
+		result.level = parse_expression::expression::precedence.size();
+		result.arguments.push_back(parse_expression::argument::constantOf(export_value(v)));
+	}
 	return result;	
 }
 
@@ -175,7 +193,7 @@ parse_expression::expression export_expression(const State &s, ucs::ConstNetlist
 			add.arguments[i].sub = result[i];
 		}
 	} else {
-		add.arguments.push_back(parse_expression::argument::constantOf("true"));
+		add.arguments.push_back(parse_expression::argument::constantOf("vdd"));
 	}
 
 	return add;
@@ -189,7 +207,7 @@ parse_expression::composition export_composition(const State &s, ucs::ConstNetli
 	result.level = 1;
 
 	for (int i = 0; i < (int)s.values.size(); i++) {
-		if (not s.values[i].isUnknown()) {
+		if (not s.values[i].isUnknown() and not s.values[i].isUndef()) {
 			parse_expression::assignment assign;
 			assign.valid = true;
 			assign.lvalue.push_back(export_net(i, nets));
@@ -260,6 +278,14 @@ parse_expression::expression export_expression(const Expression &expr, ucs::Cons
 			add.arguments.resize(2);
 			add.arguments[0].constant = "valid";
 			add.arguments[1] = export_argument(result, i->operands[0], nets);
+		} else if (i->func == Operation::TRUTHINESS) {
+			auto op = export_operator(arithmetic::Operator("", "(", ",", ")"));
+
+			add.level = op.first;
+			add.operators.push_back(op.second);
+			add.arguments.resize(2);
+			add.arguments[0].constant = "true";
+			add.arguments[1] = export_argument(result, i->operands[0], nets);
 		} else if (i->func == Operation::INVERSE) {
 			auto op = export_operator(arithmetic::Operator("", "", "/", ""));
 
@@ -296,7 +322,7 @@ parse_expression::expression export_expression(const Expression &expr, ucs::Cons
 		} else {
 			parse_expression::expression add;
 			add.valid = true;
-			add.arguments.push_back(parse_expression::argument::constantOf("0"));
+			add.arguments.push_back(parse_expression::argument::constantOf("gnd"));
 			return add;
 		}
 	}
@@ -315,11 +341,12 @@ parse_expression::assignment export_assignment(const Action &expr, ucs::ConstNet
 	parse_expression::assignment result;
 	result.valid = true;
 
-	if (expr.variable != -1)
-		result.lvalue.push_back(export_net(expr.variable, nets));
+	if (not expr.lvalue.isUndef()) {
+		result.lvalue.push_back(export_expression(expr.lvalue, nets));
+	}
 
 	// TODO(edward.bingham) we need type information about the lvalue here
-	Operand top = expr.expr.top;
+	Operand top = expr.rvalue.top;
 	if (top.isConst() and top.cnst.isNeutral()) {
 		result.rvalue = parse_expression::expression();
 		result.operation = "-";
@@ -330,7 +357,7 @@ parse_expression::assignment export_assignment(const Action &expr, ucs::ConstNet
 		result.rvalue = parse_expression::expression();
 		result.operation = "+";
 	} else {
-		result.rvalue = export_expression(expr.expr, nets);
+		result.rvalue = export_expression(expr.rvalue, nets);
 		result.operation = "=";
 	}
 
@@ -345,8 +372,8 @@ parse_expression::composition export_composition(const Parallel &expr, ucs::Cons
 
 	for (int i = 0; i < (int)expr.actions.size(); i++)
 	{
-		if (expr.actions[i].variable < 0)
-			result.guards.push_back(export_expression(expr.actions[i].expr, nets));
+		if (expr.actions[i].lvalue.isUndef())
+			result.guards.push_back(export_expression(expr.actions[i].rvalue, nets));
 		else
 			result.literals.push_back(export_assignment(expr.actions[i], nets));
 	}
