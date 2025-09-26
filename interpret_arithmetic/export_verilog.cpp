@@ -97,6 +97,10 @@ string export_operation(int op) {
 			return "-";
 		case arithmetic::Operation::VALIDITY:
 			return "valid";
+		case arithmetic::Operation::TRUTHINESS:
+			return "true";
+		case arithmetic::Operation::CAST:
+			return "cast";
 		case arithmetic::Operation::BOOLEAN_NOT:
 			return "!";
 		case arithmetic::Operation::INVERSE:
@@ -182,13 +186,39 @@ expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetli
 	for (arithmetic::ConstUpIterator i(expr, {expr.top}); not i.done(); ++i) {
 		expression add;
 		add.valid = true;
-		add.operations.push_back(export_operation(i->func));
-		add.level = expression::get_level(add.operations[0]);
-		add.arguments.resize(i->operands.size());
-		for (int j = 0; j < (int)i->operands.size(); j++) {
-			add.arguments[j] = export_argument(result, i->operands[j], nets);
-			if (i->isCommutative() and j >= 2) {
-				add.operations.push_back(add.operations.back());
+		if (i->func == arithmetic::Operation::VALIDITY) {
+			add.level = -1;
+			add.arguments.push_back(parse_verilog::argument("1'b1"));
+		} else if (i->func == arithmetic::Operation::TRUTHINESS) {
+			add.operations.push_back(export_operation(arithmetic::Operation::EQUAL));
+			add.level = expression::get_level(add.operations[0]);
+			add.arguments.push_back(export_argument(result, i->operands[0], nets));
+			add.arguments.push_back(parse_verilog::argument("1'b1"));
+		} else if (i->func == arithmetic::Operation::CAST) {
+			string type = i->operands[0].cnst.sval;
+			if (type == "wire") {
+				add.level = -1;
+				add.arguments.push_back(parse_verilog::argument("1'b1"));
+			} else if (type == "bool") {
+				add.operations.push_back(export_operation(arithmetic::Operation::EQUAL));
+				add.level = expression::get_level(add.operations[0]);
+				add.arguments.push_back(export_argument(result, i->operands[0], nets));
+				add.arguments.push_back(parse_verilog::argument("1'b1"));
+			} else if (type == "int") {
+				add.level = -1;
+				add.arguments.push_back(export_argument(result, i->operands[0], nets));
+			} else {
+				internal("", "cast to '" + type + "' not supported for verilog", __FILE__, __LINE__);
+			}
+		} else {
+			add.operations.push_back(export_operation(i->func));
+			add.level = expression::get_level(add.operations[0]);
+			add.arguments.resize(i->operands.size());
+			for (int j = 0; j < (int)i->operands.size(); j++) {
+				add.arguments[j] = export_argument(result, i->operands[j], nets);
+				if (i->isCommutative() and j >= 2) {
+					add.operations.push_back(add.operations.back());
+				}
 			}
 		}
 
