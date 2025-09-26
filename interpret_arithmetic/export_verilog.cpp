@@ -190,20 +190,16 @@ expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetli
 			add.level = -1;
 			add.arguments.push_back(parse_verilog::argument("1'b1"));
 		} else if (i->func == arithmetic::Operation::TRUTHINESS) {
-			add.operations.push_back(export_operation(arithmetic::Operation::EQUAL));
-			add.level = expression::get_level(add.operations[0]);
+			add.level = -1;
 			add.arguments.push_back(export_argument(result, i->operands[0], nets));
-			add.arguments.push_back(parse_verilog::argument("1'b1"));
 		} else if (i->func == arithmetic::Operation::CAST) {
 			string type = i->operands[0].cnst.sval;
 			if (type == "wire") {
 				add.level = -1;
 				add.arguments.push_back(parse_verilog::argument("1'b1"));
 			} else if (type == "bool") {
-				add.operations.push_back(export_operation(arithmetic::Operation::EQUAL));
-				add.level = expression::get_level(add.operations[0]);
+				add.level = -1;
 				add.arguments.push_back(export_argument(result, i->operands[0], nets));
-				add.arguments.push_back(parse_verilog::argument("1'b1"));
 			} else if (type == "int") {
 				add.level = -1;
 				add.arguments.push_back(export_argument(result, i->operands[0], nets));
