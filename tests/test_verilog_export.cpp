@@ -6,7 +6,6 @@
 
 #include <parse_verilog/expression.h>
 #include <interpret_arithmetic/import.h>
-#include <interpret_arithmetic/export.h>
 #include <interpret_arithmetic/export_verilog.h>
 #include <common/mock_netlist.h>
 
@@ -33,7 +32,7 @@ TEST(VerilogExportParser, BasicBooleanOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = export_expression<expression>(expr, v, parse_verilog::export_value);
+	expression verilog_expr = parse_verilog::export_expression(expr, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -62,7 +61,7 @@ TEST(VerilogExportParser, ArithmeticOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = export_expression<expression>(expr, v, parse_verilog::export_value);
+	expression verilog_expr = parse_verilog::export_expression(expr, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -90,7 +89,7 @@ TEST(VerilogExportParser, ComparisonOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = export_expression<expression>(expr, v, parse_verilog::export_value);
+	expression verilog_expr = parse_verilog::export_expression(expr, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -114,7 +113,7 @@ TEST(VerilogExportParser, ExportState) {
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = export_expression<expression>(state, v, parse_verilog::export_value);
+	expression verilog_expr = parse_verilog::export_expression(state, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -157,7 +156,7 @@ TEST(VerilogExportParser, ComplexExpression) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = export_expression<expression>(expr, v, parse_verilog::export_value);
+	expression verilog_expr = parse_verilog::export_expression(expr, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);

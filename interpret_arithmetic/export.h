@@ -11,6 +11,8 @@
 #include <arithmetic/action.h>
 #include <arithmetic/algorithm.h>
 
+#include "support.h"
+
 namespace arithmetic {
 
 typedef string (*export_value_t)(const Value &);
@@ -113,7 +115,7 @@ pair<int, int> export_operator(arithmetic::Operator op) {
 }
 
 template <typename expression>
-expression export_expression(const Value &v, ucs::ConstNetlist nets, export_value_t export_value_f=export_value) {
+expression export_expression(const Value &v, export_value_t export_value_f=export_value) {
 	expression result;
 	result.valid = true;
 	if (v.isValid() and v.type == Value::ARRAY) {
@@ -121,14 +123,14 @@ expression export_expression(const Value &v, ucs::ConstNetlist nets, export_valu
 		result.level = op.first;
 		result.operators.push_back(op.second);
 		for (size_t i = 0; i < v.arr.size(); i++) {
-			result.arguments.push_back(typename expression::argument(export_expression<expression>(v.arr[i], nets, export_value_f)));
+			result.arguments.push_back(typename expression::argument(export_expression<expression>(v.arr[i], export_value_f)));
 		}
 	} else if (v.isValid() and v.type == Value::STRUCT) {
 		auto op = export_operator<expression>(arithmetic::Operator("{", "", ",", "}"));
 		result.level = op.first;
 		result.operators.push_back(op.second);
 		for (size_t i = 0; i < v.arr.size(); i++) {
-			result.arguments.push_back(typename expression::argument(export_expression<expression>(v.arr[i], nets, export_value_f)));
+			result.arguments.push_back(typename expression::argument(export_expression<expression>(v.arr[i], export_value_f)));
 		}
 	} else {
 		result.level = expression::expression::precedence.size();
@@ -212,7 +214,7 @@ composition export_composition(const State &s, ucs::ConstNetlist nets, export_va
 				assign.operation = "+";
 			} else {
 				assign.operation = "=";
-				assign.rvalue = export_expression<typename composition::expression>(s.values[i], nets, export_value_f);
+				assign.rvalue = export_expression<typename composition::expression>(s.values[i], export_value_f);
 			}
 			result.literals.push_back(assign);
 		}
@@ -254,6 +256,8 @@ typename expression::argument export_argument(const vector<expression> &sub, Ope
 
 template <typename expression>
 expression export_expression(const Expression &expr, ucs::ConstNetlist nets, export_value_t export_value_f=export_value) {
+	//cout << "exporting " << expr.to_string(true) << endl;
+
 	vector<expression> result;
 	for (arithmetic::ConstUpIterator i(expr, {expr.top}); not i.done(); ++i) {
 		expression add;
