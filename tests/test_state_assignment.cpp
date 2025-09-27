@@ -11,15 +11,16 @@
 #include "test_helpers.h"
 
 using namespace std;
-using namespace parse_expression;
+
+using expression = parse_expression::expression_t<>;
+using composition = parse_expression::composition_t<>;
+using assignment = parse_expression::assignment_t<>;
 
 TEST(StateAssignmentParser, BasicAssignmentPlus) {
 	string test_code = "a+";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -29,7 +30,7 @@ TEST(StateAssignmentParser, BasicAssignmentPlus) {
 	
 	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
-	composition out = export_composition(state, v);
+	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -40,10 +41,8 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	// Test basic composition with minus operation (removal)
 	string test_code = "b-";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -53,7 +52,7 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	
 	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
-	composition out = export_composition(state, v);
+	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -74,7 +73,7 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	
 	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
-	composition out = export_composition(state, v);
+	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -95,7 +94,7 @@ TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 	
 	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
-	composition out = export_composition(state, v);
+	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -112,7 +111,7 @@ TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 
 	composition in2(tokens2);
 	arithmetic::State state2 = arithmetic::import_state(in2, v, 0, &tokens2, true);
-	composition out2 = export_composition(state2, v);
+	composition out2 = export_composition<composition>(state2, v);
 
 	EXPECT_TRUE(tokens2.is_clean());
 	EXPECT_TRUE(out2.valid);

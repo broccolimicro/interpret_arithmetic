@@ -13,16 +13,13 @@
 #include "test_helpers.h"
 
 using namespace std;
-using namespace parse_expression;
 
 TEST(ExpressionParser, BasicBooleanOperations) {
 	// Test simple AND, OR, NOT operations
 	string test_code = "a & b | ~c";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -36,7 +33,7 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -47,10 +44,8 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	// Test more complex boolean expressions
 	string test_code = "(a & b) | (~c & d)";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -62,7 +57,7 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -73,10 +68,8 @@ TEST(ExpressionParser, ArithmeticOperations) {
 	// Test arithmetic operations
 	string test_code = "a + b * c";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -86,7 +79,7 @@ TEST(ExpressionParser, ArithmeticOperations) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -97,10 +90,8 @@ TEST(ExpressionParser, ComparisonOperations) {
 	// Test comparison operations
 	string test_code = "a < b & c == d";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -112,7 +103,7 @@ TEST(ExpressionParser, ComparisonOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -123,10 +114,8 @@ TEST(ExpressionParser, MixedOperations) {
 	// Test mixing boolean, arithmetic, and comparison operations
 	string test_code = "(a + b > c) & (d * e < f)";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -138,7 +127,7 @@ TEST(ExpressionParser, MixedOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -149,10 +138,8 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	// Test unary operations
 	string test_code = "+a & -b";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -164,7 +151,7 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -175,10 +162,8 @@ TEST(ExpressionParser, BitShifting) {
 	// Test bit shifting operations
 	string test_code = "a << 2 | b >> 3";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -190,7 +175,7 @@ TEST(ExpressionParser, BitShifting) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -201,10 +186,8 @@ TEST(ExpressionParser, Constants) {
 	// Test numeric constants
 	string test_code = "a & 42 | b & 0";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -216,7 +199,7 @@ TEST(ExpressionParser, Constants) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -227,10 +210,8 @@ TEST(ExpressionParser, TrueFalse) {
 	// Test gnd and vdd constants
 	string test_code = "a & vdd | b & gnd";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -242,7 +223,7 @@ TEST(ExpressionParser, TrueFalse) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -253,10 +234,8 @@ TEST(ExpressionParser, DifferentRegions) {
 	// Test expressions with region specifications
 	string test_code = "a'1 & b'2 | c'3";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -267,7 +246,7 @@ TEST(ExpressionParser, DifferentRegions) {
 	
 	expression in(tokens);
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -277,10 +256,8 @@ TEST(ExpressionParser, DifferentRegions) {
 TEST(ExpressionParser, Function) {
 	string test_code = "x + y.myfunc(a, b, c)";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -292,7 +269,7 @@ TEST(ExpressionParser, Function) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -302,10 +279,8 @@ TEST(ExpressionParser, Function) {
 TEST(ExpressionParser, EmptyFunction) {
 	string test_code = "x + z.f.y.myfunc()";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -317,7 +292,7 @@ TEST(ExpressionParser, EmptyFunction) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -327,10 +302,8 @@ TEST(ExpressionParser, EmptyFunction) {
 TEST(ExpressionParser, BuiltinFunction) {
 	string test_code = "x + myfunc(y,z)";
 
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -342,7 +315,7 @@ TEST(ExpressionParser, BuiltinFunction) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -352,10 +325,8 @@ TEST(ExpressionParser, BuiltinFunction) {
 TEST(ExpressionParser, arrays) {
 	string test_code = "x[y] + [a, b, c][2]";
 
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -367,7 +338,7 @@ TEST(ExpressionParser, arrays) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression(expr, v);
+	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);

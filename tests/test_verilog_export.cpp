@@ -1,27 +1,27 @@
 #include <gtest/gtest.h>
 #include <parse/default/line_comment.h>
 #include <parse/default/block_comment.h>
-#include <parse_expression/expression.h>
-#include <parse_verilog/expression.h>
 #include <sstream>
 #include <string>
 
+#include <parse_verilog/expression.h>
 #include <interpret_arithmetic/import.h>
+#include <interpret_arithmetic/export.h>
 #include <interpret_arithmetic/export_verilog.h>
-#include "test_helpers.h"
+#include <common/mock_netlist.h>
 
 using namespace std;
-using namespace parse_expression;
 
-//==============================================================================
-// Verilog Export Tests
-//==============================================================================
+using namespace parse_verilog;
+
+using composition=parse_expression::composition_t<expr_group, parse_verilog::number>;
 
 TEST(VerilogExportParser, BasicBooleanOperations) {
 	// Test exporting boolean operations to Verilog
 	string test_code = "a & b | ~c";
 	
 	tokenizer tokens;
+	parse_verilog::setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -33,7 +33,7 @@ TEST(VerilogExportParser, BasicBooleanOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	parse_verilog::expression verilog_expr = parse_verilog::export_expression(expr, v);
+	expression verilog_expr = export_expression<expression>(expr, v, parse_verilog::export_value);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -50,6 +50,7 @@ TEST(VerilogExportParser, ArithmeticOperations) {
 	string test_code = "a + b * c";
 	
 	tokenizer tokens;
+	parse_verilog::setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -61,7 +62,7 @@ TEST(VerilogExportParser, ArithmeticOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	parse_verilog::expression verilog_expr = parse_verilog::export_expression(expr, v);
+	expression verilog_expr = export_expression<expression>(expr, v, parse_verilog::export_value);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -77,6 +78,7 @@ TEST(VerilogExportParser, ComparisonOperations) {
 	string test_code = "a < b && c == d";
 	
 	tokenizer tokens;
+	parse_verilog::setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -88,7 +90,7 @@ TEST(VerilogExportParser, ComparisonOperations) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	parse_verilog::expression verilog_expr = parse_verilog::export_expression(expr, v);
+	expression verilog_expr = export_expression<expression>(expr, v, parse_verilog::export_value);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -100,6 +102,7 @@ TEST(VerilogExportParser, ExportState) {
 	string test_code = "a+";
 	
 	tokenizer tokens;
+	parse_verilog::setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -107,11 +110,11 @@ TEST(VerilogExportParser, ExportState) {
 
 	MockNetlist v;
 	
-	parse_expression::composition in(tokens);
+	composition in(tokens);
 	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	parse_verilog::expression verilog_expr = parse_verilog::export_expression(state, v);
+	expression verilog_expr = export_expression<expression>(state, v, parse_verilog::export_value);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -142,6 +145,7 @@ TEST(VerilogExportParser, ComplexExpression) {
 	string test_code = "(a && b) || (c && !d) || (e < f)";
 	
 	tokenizer tokens;
+	parse_verilog::setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	expression::register_syntax(tokens);
@@ -153,38 +157,9 @@ TEST(VerilogExportParser, ComplexExpression) {
 	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	parse_verilog::expression verilog_expr = parse_verilog::export_expression(expr, v);
+	expression verilog_expr = export_expression<expression>(expr, v, parse_verilog::export_value);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
 	EXPECT_EQ(verilog_expr.to_string(), "a&&b||c&&!d||e<f");
 }
-
-TEST(VerilogExportParser, ExportVariableName) {
-	// Test exporting variable names to Verilog
-	MockNetlist v;
-	
-	// Add some variables
-	v.netIndex("simple", true);         // simple name
-	v.netIndex("complex.name", true);   // hierarchical name
-	v.netIndex("array[0]", true);       // array name
-	
-	// Export to Verilog variable names
-	parse_verilog::variable_name var0 = ucs::Net(v.netAt(0));
-	parse_verilog::variable_name var1 = ucs::Net(v.netAt(1));
-	parse_verilog::variable_name var2 = ucs::Net(v.netAt(2));
-	
-	EXPECT_TRUE(var0.valid);
-	EXPECT_TRUE(var1.valid);
-	EXPECT_TRUE(var2.valid);
-	
-	// Check for proper variable naming
-	EXPECT_EQ(var0.to_string(), "simple");
-	
-	// These may be transformed in Verilog syntax
-	string complex_result = var1.to_string();
-	EXPECT_TRUE(complex_result.find("complex") != string::npos);
-	
-	string array_result = var2.to_string();
-	EXPECT_TRUE(array_result.find("array") != string::npos);
-} 

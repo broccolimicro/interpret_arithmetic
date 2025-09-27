@@ -12,20 +12,17 @@
 #include "test_helpers.h"
 
 using namespace std;
-using namespace parse_expression;
 
-//==============================================================================
-// Composition Tests
-//==============================================================================
+using expression = parse_expression::expression_t<>;
+using composition = parse_expression::composition_t<>;
+using assignment = parse_expression::assignment_t<>;
 
 TEST(CompositionParser, BasicParallelComposition) {
 	// Test parallel composition (,)
 	string test_code = "a+, b+, c-";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -35,7 +32,7 @@ TEST(CompositionParser, BasicParallelComposition) {
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
-	composition out = export_composition(parallel, v);
+	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -46,10 +43,8 @@ TEST(CompositionParser, ComplexParallelComposition) {
 	// Test complex parallel composition
 	string test_code = "a+, b = c & d, e-";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -59,7 +54,7 @@ TEST(CompositionParser, ComplexParallelComposition) {
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
-	composition out = export_composition(parallel, v);
+	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -72,10 +67,8 @@ TEST(CompositionParser, BasicChoice) {
 	// Test internal choice (:)
 	string test_code = "(a+) : (b-)";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -85,7 +78,7 @@ TEST(CompositionParser, BasicChoice) {
 	
 	composition in(tokens);
 	arithmetic::Choice choice = arithmetic::import_choice(in, v, 0, &tokens, true);
-	composition out = export_composition(choice, v);
+	composition out = export_composition<composition>(choice, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -96,10 +89,8 @@ TEST(CompositionParser, ComplexChoice) {
 	// Test more complex choice
 	string test_code = "(a = x & y) : (b-, c+)";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -109,7 +100,7 @@ TEST(CompositionParser, ComplexChoice) {
 	
 	composition in(tokens);
 	arithmetic::Choice choice = arithmetic::import_choice(in, v, 0, &tokens, true);
-	composition out = export_composition(choice, v);
+	composition out = export_composition<composition>(choice, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -120,10 +111,8 @@ TEST(CompositionParser, NestedCompositions) {
 	// Test nested compositions
 	string test_code = "(a+, b+) : (c-, (d+ : e+))";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -134,7 +123,7 @@ TEST(CompositionParser, NestedCompositions) {
 	composition in(tokens);
 	// This might need to be adapted based on how nested compositions are handled
 	arithmetic::Choice choice = arithmetic::import_choice(in, v, 0, &tokens, true);
-	composition out = export_composition(choice, v);
+	composition out = export_composition<composition>(choice, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -145,10 +134,8 @@ TEST(CompositionParser, GuardedCompositions) {
 	// Test guarded compositions
 	string test_code = "(c+, d+) : e : (f-)";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -159,7 +146,7 @@ TEST(CompositionParser, GuardedCompositions) {
 	composition in(tokens);
 	// This might need adaptation based on how guarded compositions are handled
 	arithmetic::Choice choice = arithmetic::import_choice(in, v, 0, &tokens, true);
-	composition out = export_composition(choice, v);
+	composition out = export_composition<composition>(choice, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -170,10 +157,8 @@ TEST(CompositionParser, RoundTripConversion) {
 	// Test round-trip conversion
 	string test_code = "a+, b-, c = d & e";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -183,7 +168,7 @@ TEST(CompositionParser, RoundTripConversion) {
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
-	composition out = export_composition(parallel, v);
+	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -193,10 +178,8 @@ TEST(CompositionParser, RoundTripConversion) {
 TEST(CompositionParser, ChannelActions) {
 	string test_code = "A!B?";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -206,7 +189,7 @@ TEST(CompositionParser, ChannelActions) {
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
-	composition out = export_composition(parallel, v);
+	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -216,10 +199,8 @@ TEST(CompositionParser, ChannelActions) {
 TEST(CompositionParser, ChannelProbe) {
 	string test_code = "A!#B";
 	
-	expression::register_precedence(createPrecedence());
-	assignment::lvalueLevel = 13;
-	
 	tokenizer tokens;
+	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	composition::register_syntax(tokens);
@@ -229,7 +210,7 @@ TEST(CompositionParser, ChannelProbe) {
 	
 	composition in(tokens);
 	arithmetic::Parallel parallel = arithmetic::import_parallel(in, v, 0, &tokens, true);
-	composition out = export_composition(parallel, v);
+	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);

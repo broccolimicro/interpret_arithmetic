@@ -1,6 +1,6 @@
 NAME          = interpret_arithmetic
-DEPEND        = arithmetic parse_verilog parse_expression parse_ucs parse common
-TEST_DEPEND   = arithmetic parse_verilog parse_expression parse_ucs parse common
+DEPEND        = arithmetic parse_verilog parse_expression parse common
+TEST_DEPEND   = arithmetic parse_verilog parse_expression parse common
 
 COVERAGE ?= 0
 

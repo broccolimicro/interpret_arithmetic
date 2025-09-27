@@ -1,9 +1,13 @@
 #pragma once
 
-#include <parse_expression/precedence.h>
+#include <parse_expression/expression.h>
+#include <parse_expression/composition.h>
+#include <parse_expression/assignment.h>
 #include <common/mock_netlist.h>
 
-using namespace parse_expression;
+using expression = parse_expression::expression_t<>;
+using composition = parse_expression::composition_t<>;
+using assignment = parse_expression::assignment_t<>;
 
-precedence_set createPrecedence();
+void setup_expressions();
 
