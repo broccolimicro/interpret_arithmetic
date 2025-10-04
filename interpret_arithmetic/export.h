@@ -78,8 +78,8 @@ expression export_net(string str) {
 	size_t tic = str.rfind('\'');
 	if (tic != string::npos) {
 		if (op.level < 0 or op.index < 0) {
-			internal("", "unable to find \"'\" operator", __FILE__, __LINE__);
-			return expression();
+			//internal("", "unable to find \"'\" operator", __FILE__, __LINE__);
+			return export_member<expression>(str.substr(0, tic));
 		}
 		expression result;
 		result.valid = true;

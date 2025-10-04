@@ -6,15 +6,13 @@
 #include <sstream>
 #include <string>
 
-#include <interpret_arithmetic/import.h>
+#include "expression.h"
+#include "import_expr.h"
 #include <interpret_arithmetic/export.h>
-#include "test_helpers.h"
+
+#include <common/mock_netlist.h>
 
 using namespace std;
-
-using expression = parse_expression::expression_t<>;
-using composition = parse_expression::composition_t<>;
-using assignment = parse_expression::assignment_t<>;
 
 TEST(StateAssignmentParser, BasicAssignmentPlus) {
 	string test_code = "a+";
@@ -29,7 +27,7 @@ TEST(StateAssignmentParser, BasicAssignmentPlus) {
 	MockNetlist v;
 	
 	composition in(tokens);
-	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
+	arithmetic::State state = import_state(in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -51,7 +49,7 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	MockNetlist v;
 	
 	composition in(tokens);
-	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
+	arithmetic::State state = import_state(in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -72,7 +70,7 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	MockNetlist v;
 	
 	composition in(tokens);
-	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
+	arithmetic::State state = import_state(in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -93,7 +91,7 @@ TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 	MockNetlist v;
 	
 	composition in(tokens);
-	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
+	arithmetic::State state = import_state(in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -110,7 +108,7 @@ TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 	tokens2.insert("composition_gnd", test_code);
 
 	composition in2(tokens2);
-	arithmetic::State state2 = arithmetic::import_state(in2, v, 0, &tokens2, true);
+	arithmetic::State state2 = import_state(in2, v, 0, &tokens2, true);
 	composition out2 = export_composition<composition>(state2, v);
 
 	EXPECT_TRUE(tokens2.is_clean());

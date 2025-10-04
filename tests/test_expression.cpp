@@ -8,9 +8,11 @@
 #include <arithmetic/rewrite.h>
 #include <arithmetic/algorithm.h>
 
-#include <interpret_arithmetic/import.h>
 #include <interpret_arithmetic/export.h>
-#include "test_helpers.h"
+
+#include "expression.h"
+#include "import_expr.h"
+#include <common/mock_netlist.h>
 
 using namespace std;
 
@@ -28,7 +30,8 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
@@ -54,7 +57,7 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -78,7 +81,7 @@ TEST(ExpressionParser, ArithmeticOperations) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -100,7 +103,7 @@ TEST(ExpressionParser, ComparisonOperations) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -124,7 +127,7 @@ TEST(ExpressionParser, MixedOperations) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -148,7 +151,7 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -172,7 +175,7 @@ TEST(ExpressionParser, BitShifting) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -196,7 +199,7 @@ TEST(ExpressionParser, Constants) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -220,7 +223,7 @@ TEST(ExpressionParser, TrueFalse) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -245,7 +248,7 @@ TEST(ExpressionParser, DifferentRegions) {
 
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expression out = export_expression<expression>(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -266,7 +269,7 @@ TEST(ExpressionParser, Function) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -289,7 +292,7 @@ TEST(ExpressionParser, EmptyFunction) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -312,7 +315,7 @@ TEST(ExpressionParser, BuiltinFunction) {
 	MockNetlist v;
 
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);
@@ -335,7 +338,7 @@ TEST(ExpressionParser, arrays) {
 	MockNetlist v;
 
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 	expression out = export_expression<expression>(expr, v);

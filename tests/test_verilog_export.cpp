@@ -5,15 +5,12 @@
 #include <string>
 
 #include <parse_verilog/expression.h>
-#include <interpret_arithmetic/import.h>
+#include "expression.h"
+#include "import_expr.h"
 #include <interpret_arithmetic/export_verilog.h>
 #include <common/mock_netlist.h>
 
 using namespace std;
-
-using namespace parse_verilog;
-
-using composition=parse_expression::composition_t<expr_group, parse_verilog::number>;
 
 TEST(VerilogExportParser, BasicBooleanOperations) {
 	// Test exporting boolean operations to Verilog
@@ -29,10 +26,10 @@ TEST(VerilogExportParser, BasicBooleanOperations) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = parse_verilog::export_expression(expr, v);
+	parse_verilog::expression verilog_expr = parse_verilog::export_expression(expr, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -58,10 +55,10 @@ TEST(VerilogExportParser, ArithmeticOperations) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = parse_verilog::export_expression(expr, v);
+	parse_verilog::expression verilog_expr = parse_verilog::export_expression(expr, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -86,10 +83,10 @@ TEST(VerilogExportParser, ComparisonOperations) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = parse_verilog::export_expression(expr, v);
+	parse_verilog::expression verilog_expr = parse_verilog::export_expression(expr, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -110,10 +107,10 @@ TEST(VerilogExportParser, ExportState) {
 	MockNetlist v;
 	
 	composition in(tokens);
-	arithmetic::State state = arithmetic::import_state(in, v, 0, &tokens, true);
+	arithmetic::State state = import_state(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = parse_verilog::export_expression(state, v);
+	parse_verilog::expression verilog_expr = parse_verilog::export_expression(state, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
@@ -153,10 +150,10 @@ TEST(VerilogExportParser, ComplexExpression) {
 	MockNetlist v;
 	
 	expression in(tokens);
-	arithmetic::Expression expr = arithmetic::import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
 	
 	// Export to Verilog expression
-	expression verilog_expr = parse_verilog::export_expression(expr, v);
+	parse_verilog::expression verilog_expr = parse_verilog::export_expression(expr, v);
 	
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(verilog_expr.valid);
