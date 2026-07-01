@@ -322,7 +322,7 @@ expression export_expression(const Expression &expr, ucs::ConstNetlist nets, exp
 		} else {
 			expression add;
 			add.valid = true;
-			add.arguments.push_back(expression::argument::constantOf("gnd"));
+			add.arguments.push_back(expression::argument::constantOf("undef"));
 			return add;
 		}
 	}
@@ -373,10 +373,10 @@ composition export_composition(const Parallel &expr, ucs::ConstNetlist nets, exp
 
 	for (int i = 0; i < (int)expr.actions.size(); i++)
 	{
-		if (expr.actions[i].lvalue.isUndef())
-			result.guards.push_back(export_expression<typename composition::expression>(expr.actions[i].rvalue, nets, export_value_f));
-		else
-			result.literals.push_back(export_assignment<typename composition::assignment>(expr.actions[i], nets, export_value_f));
+		//if (expr.actions[i].lvalue.isUndef())
+		//	result.guards.push_back(export_expression<typename composition::expression>(expr.actions[i].rvalue, nets, export_value_f));
+		//else
+		result.literals.push_back(export_assignment<typename composition::assignment>(expr.actions[i], nets, export_value_f));
 	}
 
 	return result;
