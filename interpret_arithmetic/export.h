@@ -246,8 +246,6 @@ typename expression::argument export_argument(const vector<expression> &sub, Ope
 		result.sub = export_net<expression>(op.index, nets);
 	} else if (op.isExpr()) {
 		result.sub = sub[op.index];
-	} else if (op.isType()) {
-		internal("", "unable to export type expression", __FILE__, __LINE__);
 	} else {
 		internal("", "unable to export undefined expression", __FILE__, __LINE__);
 	}
