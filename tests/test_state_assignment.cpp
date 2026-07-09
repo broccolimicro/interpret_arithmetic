@@ -8,6 +8,7 @@
 
 #include "expression.h"
 #include "import_expr.h"
+#include <interpret_arithmetic/import.h>
 #include <interpret_arithmetic/export.h>
 
 #include <common/mock_netlist.h>
@@ -24,10 +25,11 @@ TEST(StateAssignmentParser, BasicAssignmentPlus) {
 	composition::register_syntax(tokens);
 	tokens.insert("composition_plus", test_code);
 
+	ExpressionInterpreter imp;
 	MockNetlist v;
 	
 	composition in(tokens);
-	arithmetic::State state = import_state(in, v, 0, &tokens, true);
+	arithmetic::State state = arithmetic::import_state(imp, in, v, &tokens, 0);
 	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -46,10 +48,11 @@ TEST(StateAssignmentParser, BasicAssignmentMinus) {
 	composition::register_syntax(tokens);
 	tokens.insert("composition_minus", test_code);
 
+	ExpressionInterpreter imp;
 	MockNetlist v;
 	
 	composition in(tokens);
-	arithmetic::State state = import_state(in, v, 0, &tokens, true);
+	arithmetic::State state = arithmetic::import_state(imp, in, v, &tokens, 0);
 	composition out = export_composition<composition>(state, v);
 
 	EXPECT_TRUE(tokens.is_clean());

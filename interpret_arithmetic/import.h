@@ -16,260 +16,79 @@
 
 namespace arithmetic {
 
-int import_net(string syntax, ucs::Netlist nets, tokenizer *tokens, bool auto_define);
+_CONST_INTERFACE_ARG(ExpressionImporter,
+	(arithmetic::Expression, import_unary, (parse_expression::operation op, arithmetic::Expression expr) const, (op, expr)),
+	(arithmetic::Expression, import_binary, (parse_expression::operation op, arithmetic::Expression left, arithmetic::Expression right) const, (op, left, right)),
+	(arithmetic::Expression, import_group, (parse_expression::operation op, vector<arithmetic::Expression> args) const, (op, args)),
+	(arithmetic::Expression, import_modifier, (parse_expression::operation op, vector<arithmetic::Expression> args) const, (op, args))
+);
 
-template <int group, typename number_t=parse::number, typename instance_t=parse::instance>
-struct ExpressionInterpreter {
-	using argument = parse_expression::argument_t<group, number_t, instance_t>;
-	using expression = parse_expression::expression_t<group, number_t, instance_t>;
-	using assignment = parse_expression::assignment_t<group, number_t, instance_t>;
-	using composition = parse_expression::composition_t<group, number_t, instance_t>;
-	using operation = parse_expression::operation;
-
-	ExpressionInterpreter(tokenizer *tokens = nullptr, bool auto_define = true) {
-		this->tokens = tokens;
-		this->auto_define = auto_define;
-	}
-
-	~ExpressionInterpreter() {
-	}
-
-	tokenizer *tokens;
-	bool auto_define;
-
-	virtual arithmetic::Expression import_unary(operation op, arithmetic::Expression expr) = 0;
-	virtual arithmetic::Expression import_binary(operation op, arithmetic::Expression left, arithmetic::Expression right) = 0;
-	virtual arithmetic::Expression import_group(operation op, vector<arithmetic::Expression> args) = 0;
-	virtual arithmetic::Expression import_modifier(operation op, const vector<argument> &arguments, ucs::Netlist nets, int default_id) = 0;
-
-	string import_constant(const argument &syntax);
-	string import_constant(const expression &syntax);
-
-	string import_net_name(const argument &syntax);
-	string import_net_name(const expression &syntax);
-
-	string import_literal(const argument &syntax);
-	string import_literal(const expression &syntax);
-
-	int import_net(const expression &syntax, ucs::Netlist nets, int default_id);
-
-	arithmetic::Expression import_argument(const argument &syntax, ucs::Netlist nets, int default_id);
-	vector<arithmetic::Expression> import_arguments(const vector<argument> &syntax, ucs::Netlist nets, int default_id);
-
-	arithmetic::Expression import_members(const vector<argument> &syntax, ucs::Netlist nets, int default_id);
-	vector<arithmetic::Expression> import_call(const vector<argument> &syntax, ucs::Netlist nets, int default_id);
-
-	Expression import_expression(const expression &syntax, ucs::Netlist nets, int default_id);
-
-	Action import_action(const assignment &syntax, ucs::Netlist nets, int default_id);
-	Parallel import_parallel(const composition &syntax, ucs::Netlist nets, int default_id);
-	Choice import_choice(const composition &syntax, ucs::Netlist nets, int default_id);
-
-	State import_state(const assignment &syntax, ucs::Netlist nets, int default_id);
-	State import_state(const composition &syntax, ucs::Netlist nets, int default_id);
-};
-
-// parse_expression::argument_t<group, number_t, instance_t>
-
-template <int group, typename number_t, typename instance_t>
-string ExpressionInterpreter<group, number_t, instance_t>::import_constant(const argument &syntax) {
-	if (syntax.sub.valid) {
-		return import_constant(syntax.sub);
-	} else if (not syntax.literal.empty()) {
-		if (tokens != nullptr) {
-			tokens->internal("expected constant-valued expression", __FILE__, __LINE__);
-		} else {
-			internal("", "expected constant-valued expression", __FILE__, __LINE__);
-		}
-		return "0";
-	}
-	return syntax.constant;
-}
-
-template <int group, typename number_t, typename instance_t>
-string ExpressionInterpreter<group, number_t, instance_t>::import_constant(const parse_expression::expression_t<group, number_t, instance_t> &syntax) {
-	if (tokens != nullptr) {
-		tokens->load(&syntax);
-	}
-
-	if (not syntax.valid or syntax.level < 0 or syntax.arguments.empty()) {
-		if (tokens != nullptr) {
-			tokens->internal("invalid expression", __FILE__, __LINE__);
-		} else {
-			internal("", "invaid expression", __FILE__, __LINE__);
-		}
-		return "0";
-	}
-
-	string result = "";
-	if (syntax.operators.empty()) {
-		result += import_constant(syntax.arguments[0]);
-	} else {
-		if (tokens != nullptr) {
-			tokens->internal("sub expressions in constants not supported", __FILE__, __LINE__);
-		} else {
-			internal("", "sub expressions in constants not supported", __FILE__, __LINE__);
-		}
-		return "0";
-	}
-
-	return result;
-}
-
-template <int group, typename number_t, typename instance_t>
-string ExpressionInterpreter<group, number_t, instance_t>::import_net_name(const parse_expression::argument_t<group, number_t, instance_t> &syntax) {
-	if (syntax.sub.valid) {
-		return import_net_name(syntax.sub);
-	} else if (not syntax.literal.empty()) {
-		return syntax.literal;
-	}
-	internal(syntax.constant, "expected instance", __FILE__, __LINE__);
-	return "_";
-}
-
-template <int group, typename number_t, typename instance_t>
-string ExpressionInterpreter<group, number_t, instance_t>::import_net_name(const parse_expression::expression_t<group, number_t, instance_t> &syntax) {
-	if (tokens != nullptr) {
-		tokens->load(&syntax);
-	}
-
-	if (not syntax.valid or syntax.level < 0 or syntax.arguments.empty()) {
-		if (tokens != nullptr) {
-			tokens->internal("invalid expression", __FILE__, __LINE__);
-		} else {
-			internal("", "invaid expression", __FILE__, __LINE__);
-		}
-		return "_";
-	}
-
-	string result = "";
-	if (syntax.operators.empty()) {
-		result += import_net_name(syntax.arguments[0]);
-	} else if (syntax.precedence.at(syntax.level, syntax.operators[0]).is("", "[", ":", "]")) {
-		result += import_net_name(syntax.arguments[0]) + syntax.precedence.at(syntax.level, syntax.operators[0]).trigger;
-		for (int i = 1; i < (int)syntax.arguments.size(); i++) {
-			if (i != 1) {
-				result += syntax.precedence.at(syntax.level, syntax.operators[0]).infix;
-			}
-			result += import_constant(syntax.arguments[i]);
-		}
-		result += syntax.precedence.at(syntax.level, syntax.operators[0]).postfix;
-	} else if (syntax.precedence.at(syntax.level, syntax.operators[0]).is("", ".", "", "")
-			or syntax.precedence.at(syntax.level, syntax.operators[0]).is("", "::", "", "")) {
-		result = import_net_name(syntax.arguments[0]);
-		result += syntax.precedence.at(syntax.level, syntax.operators[0]).trigger;
-		result += import_net_name(syntax.arguments[1]);
-	} else {
-		if (tokens != nullptr) {
-			tokens->load(&syntax);
-			tokens->internal("sub expressions in variable names not supported " + syntax.precedence.at(syntax.level, syntax.operators[0]).to_string(), __FILE__, __LINE__);
-		} else {
-			internal("", "sub expressions in variable names not supported " + syntax.precedence.at(syntax.level, syntax.operators[0]).to_string(), __FILE__, __LINE__);
-		}
-		return "_";
-	}
-
-	return result;
-}
-
-template <int group, typename number_t, typename instance_t>
-string ExpressionInterpreter<group, number_t, instance_t>::import_literal(const parse_expression::argument_t<group, number_t, instance_t> &syntax) {
-	if (syntax.sub.valid) {
-		return import_literal(syntax.sub);
-	} else if (syntax.literal != "") {
-		return syntax.literal;
-	}
-	return "";
-}
-
-template <int group, typename number_t, typename instance_t>
-string ExpressionInterpreter<group, number_t, instance_t>::import_literal(const parse_expression::expression_t<group, number_t, instance_t> &syntax) {
-	if (not syntax.operators.empty() or syntax.arguments.size() != 1u) {
-		return "";
-	}
-	return import_literal(syntax.arguments[0]);	
-}
-
-template <int group, typename number_t, typename instance_t>
-int ExpressionInterpreter<group, number_t, instance_t>::import_net(const parse_expression::expression_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, int default_id) {
-	string name = import_net_name(syntax);
-	if (default_id != 0) {
-		name += "'" + ::to_string(default_id);
-	}
-
-	return arithmetic::import_net(name, nets, tokens, auto_define);
-}
-
-template <int group, typename number_t, typename instance_t>
-Expression ExpressionInterpreter<group, number_t, instance_t>::import_argument(const parse_expression::argument_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, int default_id) {
-	if (syntax.sub.valid) {
-		return import_expression(syntax.sub, nets, default_id);
-	} else if (syntax.literal != "") {
-		string name = syntax.literal;
-		if (default_id != 0) {
-			name += "'" + ::to_string(default_id);
-		}
-		return Expression::varOf(arithmetic::import_net(name, nets, tokens, auto_define));
-	} else if (syntax.constant == "false") {
+Expression import_constant(string value) {
+	if (value == "false") {
 		return Expression::boolOf(false);
-	} else if (syntax.constant == "true") {
+	} else if (value == "true") {
 		return Expression::boolOf(true);
-	} else if (syntax.constant == "gnd") {
+	} else if (value == "gnd") {
 		return Expression::gnd();
-	} else if (syntax.constant == "vdd") {
+	} else if (value == "vdd") {
 		return Expression::vdd();
-	} else if (syntax.constant != "") {
-		return Expression::intOf(atoi(syntax.constant.c_str()));
+	} else if (not value.empty()) {
+		size_t n = value.find_first_of("0123456789");
+		size_t m = value.find_first_of(".-+");
+
+		if (n != 0) {
+			if ((value[0] == '\"' and value.back() == '\"')
+				or (value[0] == '\'' and value.back() == '\'')) {
+				return Expression::stringOf(value.substr(1, value.size()-2));
+			}
+			return Expression::stringOf(value);
+		} else if (m != string::npos) {
+			return Expression::realOf(atof(value.c_str()));
+		}
+		return Expression::intOf(atoi(value.c_str()));
 	}
 	return Expression::X();
 }
 
 template <int group, typename number_t, typename instance_t>
-vector<Expression> ExpressionInterpreter<group, number_t, instance_t>::import_arguments(const vector<parse_expression::argument_t<group, number_t, instance_t> > &syntax, ucs::Netlist nets, int default_id) {
+Expression import_argument(ExpressionImporter imp, const parse_expression::argument_t<group, number_t, instance_t> &syntax, parse_expression::operation::ArgType argType, ucs::Netlist symbols, int region, tokenizer *tokens) {
+	if (syntax.sub.valid) {
+		return import_expression(imp, syntax.sub, symbols, region, tokens);
+	} else if (syntax.literal != "") {
+			}
+		if (argType == parse_expression::operation::LABEL) {
+			return import_constant(syntax.literal);
+		}
+	
+		int uid = symbols.netIndex(syntax.literal+"'"+::to_string(region));
+		if (uid >= 0) {
+			return Expression::varOf(uid);
+		}
+
+
+
+		}
+
+		error("", "symbol not found '" + syntax.literal + "'", __FILE__, __LINE__);
+		return Expression::undef();
+	}
+	if (argType != parse_expression::operation::LITERAL and argType != parse_expression::operation::LABEL) {
+		error("", "expected typename, found '" + syntax.constant + "'", __FILE__, __LINE__);
+	}
+	return import_constant(syntax.constant);
+}
+
+template <int group, typename number_t, typename instance_t>
+vector<Expression> import_arguments(ExpressionImporter imp, const vector<parse_expression::argument_t<group, number_t, instance_t> > &syntax, parse_expression::operation::ArgType leftType, parse_expression::operation::ArgType rightType, ucs::Netlist symbols, int region, tokenizer *tokens) {
 	vector<Expression> result;
 	for (size_t i = 0; i < syntax.size(); i++) {
-		result.push_back(import_argument(syntax[i], nets, default_id));
+		result.push_back(import_argument(syntax[i], (i == 0 ? leftType : rightType), symbols, region, tokens));
 	}
 	return result;
 }
 
 template <int group, typename number_t, typename instance_t>
-Expression ExpressionInterpreter<group, number_t, instance_t>::import_members(const vector<parse_expression::argument_t<group, number_t, instance_t> > &syntax, ucs::Netlist nets, int default_id) {
-	Expression result;
-	if (not syntax.empty()) {
-		result = import_argument(syntax[0], nets, default_id);
-	}
-	for (size_t i = 1; i < syntax.size(); i++) {
-		string lit = import_literal(syntax[i]);
-		if (lit == "") {
-			internal("", "member operator '.' expects literals", __FILE__, __LINE__);
-			break;
-		}
-		result.push(arithmetic::Operation::MEMBER, {result.top, Operand::stringOf(lit)});
-	}
-	return result;
-}
-
-template <int group, typename number_t, typename instance_t>
-vector<Expression> ExpressionInterpreter<group, number_t, instance_t>::import_call(const vector<parse_expression::argument_t<group, number_t, instance_t> > &syntax, ucs::Netlist nets, int default_id) {
-	vector<Expression> result;
-	if (not syntax.empty()) {
-		string first = import_literal(syntax[0]);
-		if (not first.empty()) {
-			result.push_back(Expression::stringOf(first));
-		} else {
-			result.push_back(import_argument(syntax[0], nets, default_id));
-		}
-	}
-
-	for (size_t i = 1; i < syntax.size(); i++) {
-		result.push_back(import_argument(syntax[i], nets, default_id));
-	}
-	return result;
-}
-
-template <int group, typename number_t, typename instance_t>
-Expression ExpressionInterpreter<group, number_t, instance_t>::import_expression(const parse_expression::expression_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, int default_id) {
+Expression import_expression(ExpressionImporter imp, const parse_expression::expression_t<group, number_t, instance_t> &syntax, ucs::Netlist symbols, int region, tokenizer *tokens) {
 	if (tokens != NULL) {
 		tokens->load(&syntax);
 	}
@@ -285,23 +104,21 @@ Expression ExpressionInterpreter<group, number_t, instance_t>::import_expression
 
 	if (syntax.operators.empty()) {
 		if (syntax.arguments.size() == 1u) {
-			return import_argument(syntax.arguments[0], nets, default_id);
-		} else if (tokens != NULL) {
-			tokens->error("malformed expression", __FILE__, __LINE__);
+			return import_argument(imp, syntax.arguments[0], parse_expression::operation::LITERAL, symbols, region, tokens);
 		} else {
 			internal("", "malformed expression", __FILE__, __LINE__);
 		}
 	}
 
-	operation op = syntax.precedence.at(syntax.level, syntax.operators.back());
+	parse_expression::operation op = syntax.precedence.at(syntax.level, syntax.operators.back());
 	if (syntax.precedence.isGroup(syntax.level)) {
-		return import_group(op, import_arguments(syntax.arguments, nets, default_id));
+		return imp.import_group(op, import_arguments(imp, syntax.arguments, op.leftType, op.rightType, symbols, region, tokens));
 	} else if (syntax.precedence.isModifier(syntax.level)) {
-		return import_modifier(op, syntax.arguments, nets, default_id);
+		return imp.import_modifier(op, import_arguments(imp, syntax.arguments, op.leftType, op.rightType, symbols, region, tokens));
 	} else if (syntax.precedence.isBinary(syntax.level) or syntax.precedence.isUnary(syntax.level)) {
 		Expression result;
 		if (not syntax.arguments.empty()) {
-			result = import_argument(syntax.arguments[0], nets, default_id);
+			result = import_argument(imp, syntax.arguments[0], parse_expression::operation::LITERAL, symbols, region, tokens);
 		}
 
 		if (syntax.arguments.size() == 1u) {
@@ -309,16 +126,16 @@ Expression ExpressionInterpreter<group, number_t, instance_t>::import_expression
 				for (int i = (int)syntax.operators.size()-1; i >= 0; i--) {
 					parse_expression::operation op = syntax.precedence.at(syntax.level, syntax.operators[i]);
 
-					result = import_unary(op, result);
+					result = imp.import_unary(op, result);
 				}
 			}
 		} else {
 			for (size_t i = 1; i < syntax.arguments.size(); i++) {
 				parse_expression::operation op = syntax.precedence.at(syntax.level, syntax.operators[i-1]);
 				
-				Expression sub = import_argument(syntax.arguments[i], nets, default_id);
+				Expression sub = import_argument(imp, syntax.arguments[i], op.rightType, symbols, region, tokens);
 
-				result = import_binary(op, result, sub);
+				result = imp.import_binary(op, result, sub);
 			}
 		}
 
@@ -328,8 +145,7 @@ Expression ExpressionInterpreter<group, number_t, instance_t>::import_expression
 }
 
 template <int group, typename number_t, typename instance_t>
-Action ExpressionInterpreter<group, number_t, instance_t>::import_action(const parse_expression::assignment_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, int default_id) {
-	int region = default_id;
+Action import_action(ExpressionImporter imp, const parse_expression::assignment_t<group, number_t, instance_t> &syntax, ucs::Netlist symbols, int region, tokenizer *tokens) {
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
 	}
@@ -340,24 +156,24 @@ Action ExpressionInterpreter<group, number_t, instance_t>::import_action(const p
 	if (syntax.operation.empty()) {
 		result.lvalue = Expression::undef();
 		if (syntax.lvalue[0].valid) {
-			result.rvalue = import_expression(syntax.lvalue[0], nets, region);
+			result.rvalue = import_expression(imp, syntax.lvalue[0], symbols, region, tokens);
 		}
 	} else if (syntax.operation == "+") {
 		if (syntax.lvalue.size() > 0) {
-			result.lvalue = import_expression(syntax.lvalue[0], nets, region);
+			result.lvalue = import_expression(imp, syntax.lvalue[0], symbols, region, tokens);
 		}
 		result.rvalue = Expression::vdd();
 	} else if (syntax.operation == "-") {
 		if (syntax.lvalue.size() > 0) {
-			result.lvalue = import_expression(syntax.lvalue[0], nets, region);
+			result.lvalue = import_expression(imp, syntax.lvalue[0], symbols, region, tokens);
 		}
 		result.rvalue = Expression::gnd();
 	} else if (syntax.operation == "=") {
 		if (syntax.lvalue.size() > 0) {
-			result.lvalue = import_expression(syntax.lvalue[0], nets, region);
+			result.lvalue = import_expression(imp, syntax.lvalue[0], symbols, region, tokens);
 		}
 		if (syntax.rvalue.valid) {
-			result.rvalue = import_expression(syntax.rvalue, nets, region);
+			result.rvalue = import_expression(imp, syntax.rvalue, symbols, region, tokens);
 		}
 	}
 	//cout << result.lvalue << " = " << result.rvalue << endl;
@@ -366,40 +182,33 @@ Action ExpressionInterpreter<group, number_t, instance_t>::import_action(const p
 }
 
 template <int group, typename number_t, typename instance_t>
-Parallel ExpressionInterpreter<group, number_t, instance_t>::import_parallel(const parse_expression::composition_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, int default_id) {
+Parallel import_parallel(ExpressionImporter imp, const parse_expression::composition_t<group, number_t, instance_t> &syntax, ucs::Netlist symbols, ucs::TypeTable types, int currMod, int region, tokenizer *tokens) {
 	if (syntax.level == 0 and (syntax.literals.size() + syntax.guards.size() + syntax.compositions.size()) > 1u) {
-		if (tokens != NULL) {
-			tokens->load(&syntax);
-			tokens->error("expected parallel composition", __FILE__, __LINE__);
-		} else {
-			error(syntax.to_string(), "expected parallel composition", __FILE__, __LINE__);
-		}
+		error(__FILE__, __LINE__, tokens, &syntax, "expected parallel composition");
 		return Parallel();
 	}
 
-	int region = default_id;
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
 	}
 
 	Parallel result;
 	for (int i = 0; i < (int)syntax.literals.size(); i++) {
-		result &= import_action(syntax.literals[i], nets, region);
+		result &= import_action(imp, syntax.literals[i], symbols, types, currMod, region, tokens);
 	}
 
 	for (int i = 0; i < (int)syntax.guards.size(); i++) {
-		result &= Action(import_expression(syntax.guards[i], nets, region));
+		result &= Action(import_expression(imp, syntax.guards[i], symbols, types, currMod, region, tokens));
 	}
 
 	for (int i = 0; i < (int)syntax.compositions.size(); i++) {
-		result &= import_parallel(syntax.compositions[i], nets, region);
+		result &= import_parallel(imp, syntax.compositions[i], symbols, types, currMod, region, tokens);
 	}
 	return result;
 }
 
 template <int group, typename number_t, typename instance_t>
-Choice ExpressionInterpreter<group, number_t, instance_t>::import_choice(const parse_expression::composition_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, int default_id) {
-	int region = default_id;
+Choice import_choice(ExpressionImporter imp, const parse_expression::composition_t<group, number_t, instance_t> &syntax, ucs::Netlist symbols, ucs::TypeTable types, int currMod, int region, tokenizer *tokens) {
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
 	}
@@ -407,7 +216,7 @@ Choice ExpressionInterpreter<group, number_t, instance_t>::import_choice(const p
 	Choice result(syntax.level != 0);
 
 	for (int i = 0; i < (int)syntax.literals.size(); i++) {
-		Action sub = import_action(syntax.literals[i], nets, region);
+		Action sub = import_action(imp, syntax.literals[i], symbols, region, tokens);
 		if (syntax.level == 0) {
 			result |= sub;
 		} else {
@@ -416,7 +225,7 @@ Choice ExpressionInterpreter<group, number_t, instance_t>::import_choice(const p
 	}
 
 	for (int i = 0; i < (int)syntax.guards.size(); i++) {
-		Action sub(import_expression(syntax.guards[i], nets, region));
+		Action sub(import_expression(imp, syntax.guards[i], symbols, region, tokens));
 		if (syntax.level == 0) {
 			result |= sub;
 		} else {
@@ -425,7 +234,7 @@ Choice ExpressionInterpreter<group, number_t, instance_t>::import_choice(const p
 	}
 
 	for (int i = 0; i < (int)syntax.compositions.size(); i++) {
-		Choice sub = import_choice(syntax.compositions[i], nets, region);
+		Choice sub = import_choice(imp, syntax.compositions[i], symbols, region, tokens);
 		if (syntax.level == 0) {
 			result |= sub;
 		} else {
@@ -436,8 +245,133 @@ Choice ExpressionInterpreter<group, number_t, instance_t>::import_choice(const p
 	return result;
 }
 
+
+
+
+
+
+
+int import_net(string syntax, ucs::Netlist nets, tokenizer *tokens, bool auto_define);
+
 template <int group, typename number_t, typename instance_t>
-State ExpressionInterpreter<group, number_t, instance_t>::import_state(const parse_expression::assignment_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, int default_id) {
+string import_constant(const parse_expression::argument_t<group, number_t, instance_t> &syntax, tokenizer *tokens);
+template <int group, typename number_t, typename instance_t>
+string import_constant(const parse_expression::expression_t<group, number_t, instance_t> &syntax, tokenizer *tokens);
+template <int group, typename number_t, typename instance_t>
+string import_net_name(const parse_expression::argument_t<group, number_t, instance_t> &syntax, tokenizer *tokens);
+template <int group, typename number_t, typename instance_t>
+string import_net_name(const parse_expression::expression_t<group, number_t, instance_t> &syntax, tokenizer *tokens);
+template <int group, typename number_t, typename instance_t>
+string import_literal(const parse_expression::argument_t<group, number_t, instance_t> &syntax, tokenizer *tokens);
+template <int group, typename number_t, typename instance_t>
+string import_literal(const parse_expression::expression_t<group, number_t, instance_t> &syntax, tokenizer *tokens);
+
+template <int group, typename number_t, typename instance_t>
+string import_constant(const parse_expression::argument_t<group, number_t, instance_t> &syntax, tokenizer *tokens) {
+	if (syntax.sub.valid) {
+		return import_constant(syntax.sub, tokens);
+	} else if (not syntax.literal.empty()) {
+		internal(__FILE__, __LINE__, tokens, nullptr, "expected constant-valued expression, found '{}'", syntax.literal);
+		return "0";
+	}
+	return syntax.constant;
+}
+
+template <int group, typename number_t, typename instance_t>
+string import_constant(const parse_expression::expression_t<group, number_t, instance_t> &syntax, tokenizer *tokens) {
+	if (not syntax.valid or syntax.level < 0 or syntax.arguments.empty()) {
+		internal(__FILE__, __LINE__, tokens, &syntax, "invalid expression");
+		return "0";
+	}
+
+	string result = "";
+	if (syntax.operators.empty()) {
+		result += import_constant(syntax.arguments[0], tokens);
+	} else {
+		internal(__FILE__, __LINE__, tokens, &syntax, "sub expressions in constants not supported");
+		return "0";
+	}
+
+	return result;
+}
+
+template <int group, typename number_t, typename instance_t>
+string import_net_name(const parse_expression::argument_t<group, number_t, instance_t> &syntax, tokenizer *tokens) {
+	if (syntax.sub.valid) {
+		return import_net_name(syntax.sub, tokens);
+	} else if (not syntax.literal.empty()) {
+		return syntax.literal;
+	}
+	internal(__FILE__, __LINE__, tokens, nullptr, "expected instance, found '{}'", syntax.constant);
+	return "_";
+}
+
+template <int group, typename number_t, typename instance_t>
+string import_net_name(const parse_expression::expression_t<group, number_t, instance_t> &syntax, tokenizer *tokens) {
+	if (tokens != nullptr) {
+		tokens->load(&syntax);
+	}
+
+	if (not syntax.valid or syntax.level < 0 or syntax.arguments.empty()) {
+		internal(__FILE__, __LINE__, tokens, &syntax, "invalid expression");
+		return "_";
+	}
+
+	string result = "";
+	if (syntax.operators.empty()) {
+		result += import_net_name(syntax.arguments[0], tokens);
+	} else if (syntax.precedence.at(syntax.level, syntax.operators[0]).is("", "[", ":", "]")) {
+		result += import_net_name(syntax.arguments[0], tokens) + syntax.precedence.at(syntax.level, syntax.operators[0]).trigger;
+		for (int i = 1; i < (int)syntax.arguments.size(); i++) {
+			if (i != 1) {
+				result += syntax.precedence.at(syntax.level, syntax.operators[0]).infix;
+			}
+			result += import_constant(syntax.arguments[i], tokens);
+		}
+		result += syntax.precedence.at(syntax.level, syntax.operators[0]).postfix;
+	} else if (syntax.precedence.at(syntax.level, syntax.operators[0]).is("", ".", "", "")
+			or syntax.precedence.at(syntax.level, syntax.operators[0]).is("", "::", "", "")) {
+		result = import_net_name(syntax.arguments[0], tokens);
+		result += syntax.precedence.at(syntax.level, syntax.operators[0]).trigger;
+		result += import_net_name(syntax.arguments[1], tokens);
+	} else {
+		internal(__FILE__, __LINE__, tokens, &syntax, "sub expressions in variable names not supported for '{}'", syntax.precedence.at(syntax.level, syntax.operators[0]).to_string());
+		return "_";
+	}
+
+	return result;
+}
+
+template <int group, typename number_t, typename instance_t>
+string import_literal(const parse_expression::argument_t<group, number_t, instance_t> &syntax, tokenizer *tokens) {
+	if (syntax.sub.valid) {
+		return import_literal(syntax.sub, tokens);
+	} else if (syntax.literal != "") {
+		return syntax.literal;
+	}
+	return "";
+}
+
+template <int group, typename number_t, typename instance_t>
+string import_literal(const parse_expression::expression_t<group, number_t, instance_t> &syntax, tokenizer *tokens) {
+	if (not syntax.operators.empty() or syntax.arguments.size() != 1u) {
+		return "";
+	}
+	return import_literal(syntax.arguments[0], tokens);	
+}
+
+template <int group, typename number_t, typename instance_t>
+int import_net(const parse_expression::expression_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, tokenizer *tokens, int default_id) {
+	string name = import_net_name(syntax, tokens);
+	if (default_id != 0) {
+		name += "'" + ::to_string(default_id);
+	}
+
+	return arithmetic::import_net(name, nets, tokens, false);
+}
+
+template <int group, typename number_t, typename instance_t>
+State import_state(ExpressionImporter imp, const parse_expression::assignment_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, tokenizer *tokens, int default_id) {
 	int region = default_id;
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
@@ -449,14 +383,14 @@ State ExpressionInterpreter<group, number_t, instance_t>::import_state(const par
 
 	// TODO(edward.bingham) figure out net types
 	if (syntax.operation == "+") {
-		return State(import_net(syntax.lvalue[0], nets, region), Value::vdd());
+		return State(import_net(syntax.lvalue[0], nets, tokens, region), Value::vdd());
 	} else if (syntax.operation == "-") {
-		return State(import_net(syntax.lvalue[0], nets, region), Value::gnd());
+		return State(import_net(syntax.lvalue[0], nets, tokens, region), Value::gnd());
 	} else if (syntax.operation == "~") {
-		return State(import_net(syntax.lvalue[0], nets, region), Value::X());
+		return State(import_net(syntax.lvalue[0], nets, tokens, region), Value::X());
 	} else if (syntax.operation == "=") {
 		State result;
-		int v = import_net(syntax.lvalue[0], nets, region);
+		int v = import_net(syntax.lvalue[0], nets, tokens, region);
 		if (syntax.rvalue.operators.empty() and syntax.rvalue.arguments.size() == 1 and syntax.rvalue.arguments[0].constant != "") {
 			if (syntax.rvalue.arguments[0].constant == "false") {
 				result.set(v, false);
@@ -492,7 +426,7 @@ State ExpressionInterpreter<group, number_t, instance_t>::import_state(const par
 }
 
 template <int group, typename number_t, typename instance_t>
-State ExpressionInterpreter<group, number_t, instance_t>::import_state(const parse_expression::composition_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, int default_id) {
+State import_state(ExpressionImporter imp, const parse_expression::composition_t<group, number_t, instance_t> &syntax, ucs::Netlist nets, tokenizer *tokens, int default_id) {
 	int region = default_id;
 	if (syntax.region != "") {
 		region = atoi(syntax.region.c_str());
@@ -522,13 +456,13 @@ State ExpressionInterpreter<group, number_t, instance_t>::import_state(const par
 
 	for (int i = 0; i < (int)syntax.literals.size(); i++) {
 		if (syntax.literals[i].valid) {
-			result &= import_state(syntax.literals[i], nets, region);
+			result &= import_state(imp, syntax.literals[i], nets, tokens, region);
 		}
 	}
 
 	for (int i = 0; i < (int)syntax.compositions.size(); i++) {
 		if (syntax.compositions[i].valid) {
-			result &= import_state(syntax.compositions[i], nets, region);
+			result &= import_state(imp, syntax.compositions[i], nets, tokens, region);
 		}
 	}
 

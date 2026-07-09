@@ -24,9 +24,10 @@ TEST(CompositionParser, BasicParallelComposition) {
 	tokens.insert("parallel_test", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
-	arithmetic::Parallel parallel = import_parallel(in, v, 0, &tokens, true);
+	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -46,9 +47,10 @@ TEST(CompositionParser, ComplexParallelComposition) {
 	tokens.insert("complex_parallel", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
-	arithmetic::Parallel parallel = import_parallel(in, v, 0, &tokens, true);
+	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -70,9 +72,10 @@ TEST(CompositionParser, BasicChoice) {
 	tokens.insert("choice_test", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
-	arithmetic::Choice choice = import_choice(in, v, 0, &tokens, true);
+	arithmetic::Choice choice = arithmetic::import_choice(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(choice, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -92,9 +95,10 @@ TEST(CompositionParser, ComplexChoice) {
 	tokens.insert("complex_choice", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
-	arithmetic::Choice choice = import_choice(in, v, 0, &tokens, true);
+	arithmetic::Choice choice = arithmetic::import_choice(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(choice, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -114,10 +118,11 @@ TEST(CompositionParser, NestedCompositions) {
 	tokens.insert("nested_test", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
 	// This might need to be adapted based on how nested compositions are handled
-	arithmetic::Choice choice = import_choice(in, v, 0, &tokens, true);
+	arithmetic::Choice choice = arithmetic::import_choice(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(choice, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -137,10 +142,11 @@ TEST(CompositionParser, GuardedCompositions) {
 	tokens.insert("guarded_test", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
 	// This might need adaptation based on how guarded compositions are handled
-	arithmetic::Choice choice = import_choice(in, v, 0, &tokens, true);
+	arithmetic::Choice choice = arithmetic::import_choice(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(choice, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -160,9 +166,10 @@ TEST(CompositionParser, RoundTripConversion) {
 	tokens.insert("round_trip", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
-	arithmetic::Parallel parallel = import_parallel(in, v, 0, &tokens, true);
+	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -181,9 +188,10 @@ TEST(CompositionParser, ChannelActions) {
 	tokens.insert("channel_actions", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
-	arithmetic::Parallel parallel = import_parallel(in, v, 0, &tokens, true);
+	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
@@ -202,9 +210,10 @@ TEST(CompositionParser, ChannelProbe) {
 	tokens.insert("channel_probe", test_code);
 
 	MockNetlist v;
+	ExpressionInterpreter imp;
 	
 	composition in(tokens);
-	arithmetic::Parallel parallel = import_parallel(in, v, 0, &tokens, true);
+	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
 	composition out = export_composition<composition>(parallel, v);
 
 	EXPECT_TRUE(tokens.is_clean());
