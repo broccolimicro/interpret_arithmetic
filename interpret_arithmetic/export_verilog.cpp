@@ -4,7 +4,25 @@
 #include <common/message.h>
 #include "export.h"
 
+#include <parse_verilog/expression.h>
+
 namespace parse_verilog {
+
+pair<int, int> ExpressionExporter::export_operator(int func) const {
+	switch (func) {
+	case arithmetic::Operation::VALIDITY: return {-1, -1};
+	case arithmetic::Operation::WIRE_NOT: return {13, 3};
+	case arithmetic::Operation::WIRE_OR: return {13, 6};
+	case arithmetic::Operation::WIRE_AND: return {13, 4};
+	case arithmetic::Operation::WIRE_XOR: return {13, 3};
+	}
+	 
+}
+
+const parse_expression::precedence_set &ExpressionExporter::precedence() const {
+	return parse_verilog::config::cfg->order;
+}
+
 
 string export_value(const arithmetic::Value &v) {
 	if (v.isUnstable()) {
@@ -28,35 +46,35 @@ string export_value(const arithmetic::Value &v) {
 	return "";
 }
 
-expression export_expression(const arithmetic::Value &v) {
+parse_expression::expression export_expression(const arithmetic::Value &v) {
 	return arithmetic::export_expression<parse_verilog::expression>(v, export_value);
 }
 
-expression export_expression(const arithmetic::State &s, ucs::ConstNetlist nets) {
+parse_expression::expression export_expression(const arithmetic::State &s, ucs::ConstNetlist nets) {
 	return arithmetic::export_expression<parse_verilog::expression>(s, nets, export_value);
 }
 
-composition export_composition(const arithmetic::State &s, ucs::ConstNetlist nets) {
+parse_expression::expression export_composition(const arithmetic::State &s, ucs::ConstNetlist nets) {
 	return arithmetic::export_composition<parse_verilog::composition>(s, nets, export_value);
 }
 
-composition export_composition(const arithmetic::Region &r, ucs::ConstNetlist nets) {
+parse_expression::expression export_composition(const arithmetic::Region &r, ucs::ConstNetlist nets) {
 	return arithmetic::export_composition<parse_verilog::composition>(r, nets, export_value);
 }
 
-expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets) {
+parse_expression::expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets) {
 	return arithmetic::export_expression<parse_verilog::expression>(expr, nets, export_value);
 }
 
-assignment export_assignment(const arithmetic::Action &expr, ucs::ConstNetlist nets) {
+parse_expression::assignment export_assignment(const arithmetic::Action &expr, ucs::ConstNetlist nets) {
 	return arithmetic::export_assignment<parse_verilog::assignment>(expr, nets, export_value);
 }
 
-composition export_composition(const arithmetic::Parallel &expr, ucs::ConstNetlist nets) {
+parse_expression::expression export_composition(const arithmetic::Parallel &expr, ucs::ConstNetlist nets) {
 	return arithmetic::export_composition<parse_verilog::composition>(expr, nets, export_value);
 }
 
-composition export_composition(const arithmetic::Choice &expr, ucs::ConstNetlist nets) {
+parse_expression::expression export_composition(const arithmetic::Choice &expr, ucs::ConstNetlist nets) {
 	return arithmetic::export_composition<parse_verilog::composition>(expr, nets, export_value);
 }
 

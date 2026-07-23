@@ -1,6 +1,5 @@
 #include "import_expr.h"
 #include "expression.h"
-#include <parse/message.h>
 
 arithmetic::Expression ExpressionInterpreter::import_unary(parse_expression::operation op, arithmetic::Expression expr) const {
 	if (op.is("!", "", "", "")) {
@@ -59,7 +58,7 @@ arithmetic::Expression ExpressionInterpreter::import_binary(parse_expression::op
 	} else if (op.is("", "", "%", "")) {
 		return left % right;
 	}
-	internal(__FILE__, __LINE__, nullptr, nullptr, "unrecognized operation");
+	internal("", "unrecognized operation", __FILE__, __LINE__);
 	return left;
 }
 
@@ -67,7 +66,7 @@ arithmetic::Expression ExpressionInterpreter::import_group(parse_expression::ope
 	if (op.is("[", "", ",", "]")) {
 		return arithmetic::array(args);
 	}
-	internal(__FILE__, __LINE__, nullptr, nullptr, "unrecognized operation");
+	internal("", "unrecognized operation", __FILE__, __LINE__);
 	return arithmetic::Expression();
 }
 
@@ -128,7 +127,7 @@ arithmetic::Expression ExpressionInterpreter::import_modifier(parse_expression::
 	} else if (op.is("", "[", ":", "]")) {
 		return arithmetic::Expression(arithmetic::Operation::INDEX, args);
 	}
-	internal(__FILE__, __LINE__, nullptr, nullptr, "unrecognized operation");
+	internal("", "unrecognized operation", __FILE__, __LINE__);
 	return arithmetic::Expression();
 }
 
