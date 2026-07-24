@@ -1,78 +1,130 @@
 #include "expression.h"
 #include <parse_expression/precedence.h>
+#include <parse_expression/literal.h>
+#include <parse/wrapper.h>
 
-using parse_expression::precedence_set;
-using parse_expression::operation_set;
-using parse_expression::operation;
+namespace test {
 
-void setup_expressions() {
-	if (expression::precedence.empty()) {
-		parse_expression::precedence_set result;
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "|", "");
+std::shared_ptr<parse_expression::config> expression_config::cfg = 
+	std::make_shared<parse_expression::config>(parse_test::makeExprConfig());
 
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "&", "");
+expression_config::expression_config() {
+	debug_name = "test";
+}
 
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "^", "");
+expression_config::~expression_config() {
+}
 
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "||", "");
-		
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "&&", "");
+std::shared_ptr<parse_expression::config> composition_config::cfg = 
+	std::make_shared<parse_expression::config>(parse_test::makeCompConfig());
 
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "==", "");
-		result.push_back("", "", "!=", "");
-		result.push_back("", "", "<", "");
-		result.push_back("", "", ">", "");
-		result.push_back("", "", "<=", "");
-		result.push_back("", "", ">=", "");
+composition_config::composition_config() {
+	debug_name = "test";
+}
 
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "<<", "");
-		result.push_back("", "", ">>", "");
+composition_config::~composition_config() {
+}
 
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "+", "");
-		result.push_back("", "", "-", "");
+parse_expression::config makeExprConfig() {
+	parse_expression::config cfg;
+	int CONSTANT = cfg.push<parse_expression::default_constant>("constant");
+	int LITERAL = cfg.push<parse_expression::default_literal>("literal");
+	int TYPE = cfg.push<parse::wrapper<parse::instance> >("type");
+	int TERM = cfg.push<parse::wrapper<parse::instance> >("term");
+	int LABEL = cfg.push<parse::wrapper<parse::number> >("label");
 
-		result.push(operation_set::BINARY);
-		result.push_back("", "", "*", "");
-		result.push_back("", "", "/", "");
-		result.push_back("", "", "%", "");
+	cfg.base = {LITERAL, CONSTANT};
 
-		result.push(operation_set::UNARY);
-		result.push_back("!", "", "", "");
-		result.push_back("~", "", "", "");
-		result.push_back("(bool)", "", "", "");
-		result.push_back("+", "", "", "");
-		result.push_back("-", "", "", "");
+	using operation_set=parse_expression::operation_set;
 
-		result.push(operation_set::MODIFIER);
-		result.push_back("", "!", "", "");
-		
-		result.push(operation_set::UNARY);
-		result.push_back("#", "", "", "");
-		result.push_back("", "", "", "?");
+	cfg.order.push(operation_set::TERNARY);
+	cfg.order.push_back("", "?", ":", "");
 
-		result.push(operation_set::MODIFIER);
-		result.push_back("", "'", "", "", operation::LITERAL, operation::LABEL);
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "|", "");
 
-		result.push(operation_set::MODIFIER);
-		result.push_back("", "(", ",", ")", operation::TERM, operation::LITERAL);
-		result.push_back("", ".", "", "", operation::LITERAL, operation::LABEL);
-		result.push_back("", "[", ":", "]");
-		
-		result.push(operation_set::MODIFIER);
-		result.push_back("", "::", "", "");
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "&", "");
 
-		result.push(operation_set::GROUP);
-		result.push_back("[", "", ",", "]");
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "^", "");
 
-		expression::register_precedence(result);
-		assignment::lvalueLevel = result.size()-6;
-	}
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "||", "");
+
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "&&", "");
+
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "^^", "");
+
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "==", "");
+	cfg.order.push_back("", "", "~=", "");
+	cfg.order.push_back("", "", "<", "");
+	cfg.order.push_back("", "", ">", "");
+	cfg.order.push_back("", "", "<=", "");
+	cfg.order.push_back("", "", ">=", "");
+
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "<<", "");
+	cfg.order.push_back("", "", ">>", "");
+
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "+", "");
+	cfg.order.push_back("", "", "-", "");
+
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", "*", "");
+	cfg.order.push_back("", "", "/", "");
+	cfg.order.push_back("", "", "%", "");
+
+	cfg.order.push(operation_set::UNARY);
+	cfg.order.push_back("!", "", "", "");
+	cfg.order.push_back("~", "", "", "");
+	cfg.order.push_back("+", "", "", "");
+	cfg.order.push_back("-", "", "", "");
+	cfg.order.push_back("?", "", "", "");
+
+	cfg.order.push(operation_set::MODIFIER);
+	cfg.order.push_back("", "'", "", "", {LITERAL}, {LABEL});
+
+	cfg.order.push(operation_set::MODIFIER);
+	//cfg.order.push_back("", "{", ",", "}");
+	cfg.order.push_back("", "(", ",", ")", {TERM});
+	cfg.order.push_back("", ".", "", "", {LITERAL}, {LABEL});
+	cfg.order.push_back("", "[", ":", "]");
+
+	cfg.order.push(operation_set::MODIFIER);
+	cfg.order.push_back("", "::", "", "", {TYPE}, {LABEL});
+
+	cfg.order.push(operation_set::GROUP);
+	cfg.order.push_back("[", "", ",", "]");
+
+	cfg.lvalueLevel = cfg.order.size()-4;
+
+	return cfg;
+}
+
+parse_expression::config makeCompConfig() {
+	parse_expression::config cfg;
+
+	int GUARD = cfg.push<guard>("guard");
+	int ASSIGN = cfg.push<assignment>("assign");
+
+	cfg.base = {GUARD, ASSIGN};
+
+	using operation_set=parse_expression::operation_set;
+
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", ":", "");
+
+	cfg.order.push(operation_set::BINARY);
+	cfg.order.push_back("", "", ",", "");
+
+	cfg.lvalueLevel = 2;
+
+	return cfg;
+}
+
 }

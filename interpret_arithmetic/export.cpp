@@ -29,13 +29,39 @@ string export_value(const Value &v) {
 	return "";
 }
 
-parse_expression::expression::argument ExpressionExporter::export_operand(Operand arg) const {
-	internal("", "operand export not defined", __FILE__, __LINE__);
+parse_expression::expression::argument ExpressionExporter::export_action(const Action &act) const {
+	internal("", "action export not defined", __FILE__, __LINE__);
 	return {-1, nullptr};
 }
 
-parse_expression::expression::argument ExpressionExporter::export_action(const Action &act) const {
-	internal("", "action export not defined", __FILE__, __LINE__);
+parse_expression::expression ExpressionExporter::export_special(int func, const vector<parse_expression::expression::argument> &args) const {
+	if (func >= 0 and func < (int)arithmetic::Operation::operators.size()) {
+		internal("", "no export for operator '" + arithmetic::Operation::operators[func].to_string() + "'", __FILE__, __LINE__);
+	} else {
+		internal("", "operator " + ::to_string(func) + " not defined", __FILE__, __LINE__);
+	}
+	return parse_expression::expression();
+}
+
+
+
+
+
+// Functions that don't need to be overridden
+
+parse_expression::expression::argument ExpressionExporter::export_operand(Operand arg) const {
+	if (arg.isUndef()) {
+		return {-1, nullptr};
+	} else if (arg.isConst()) {
+		if (arg.cnst.type == arithmetic::Value::ARRAY
+			or arg.cnst.type == arithmetic::Value::STRUCT) {
+			return {-1, std::shared_ptr<parse::syntax>(export_expression(arg.cnst.type, arg.cnst.arr).clone())};
+		}
+		return export_constant(arg.cnst);
+	} else if (arg.isVar()) {
+		return export_literal(arg.index);
+	}
+	internal("", "operand export not defined", __FILE__, __LINE__);
 	return {-1, nullptr};
 }
 
@@ -63,53 +89,54 @@ parse_expression::expression::argument ExpressionExporter::export_argument(Opera
 	return export_operand(op);
 }
 
-vector<parse_expression::expression::argument> ExpressionExporter::export_arguments(int func, const vector<Operand> &args, const vector<parse_expression::expression> *sub) const {
+vector<parse_expression::expression::argument> ExpressionExporter::export_arguments(const vector<Operand> &args, const vector<parse_expression::expression> *sub) const {
 	vector<parse_expression::expression::argument> result;
-	if (func == Operation::VALIDITY) {
-		// valid(arg)
-
-		result.push_back(export_operand(Operand::termOf("valid")));
-		result.push_back(export_argument(args[0], sub));
-	} else if (func == Operation::TRUTHINESS) {
-		// true(arg)
-
-		result.push_back(export_operand(Operand::termOf("true")));
-		result.push_back(export_argument(args[0], sub));
-	} else if (func == Operation::NEGATIVE) {
-		// arg < 0
-
-		result.push_back(export_argument(args[0], sub));
-		result.push_back(export_operand(Operand::intOf(0)));
-	} else if (func == Operation::IDENTITY) {
-		// arg
-
-		result.push_back(export_argument(args[0], sub));
-	} else if (func == Operation::INVERSE) {
-		// 1.0 / arg
-
-		result.push_back(export_operand(Operand::realOf(1.0)));
-		result.push_back(export_argument(args[0], sub));
-	} else {
-		for (const Operand &arg : args) {
-			result.push_back(export_argument(arg, sub));
-		}
+	for (const Operand &arg : args) {
+		result.push_back(export_argument(arg, sub));
 	}
 	return result;
 }
 
-parse_expression::expression ExpressionExporter::export_expression(int func, const vector<Operand> &args, const vector<parse_expression::expression> *sub) const {
+parse_expression::expression ExpressionExporter::export_expression(int func, vector<Operand> args, const vector<parse_expression::expression> *sub) const {
 	const parse_expression::precedence_set &order = precedence();
+
+	if (func == Operation::VALIDITY) {
+		args.insert(args.begin(), Operand::termOf("valid"));
+		func = Operation::CALL;
+	} else if (func == Operation::TRUTHINESS) {
+		args.insert(args.begin(), Operand::termOf("true"));
+		func = Operation::CALL;
+	} else if (func == Operation::NEGATIVE) {
+		args.push_back(Operand::intOf(0));
+		func = Operation::LESS;
+	} else if (func == Operation::IDENTITY) {
+		parse_expression::expression result;
+		result.valid = true;
+
+		result.level = -1;
+		result.type = -1;
+
+		result.arguments = export_arguments(args, sub);
+		return result;
+	} else if (func == Operation::INVERSE) {
+		args.insert(args.begin(), Operand::realOf(1.0));
+		func = Operation::DIVIDE;
+	}
+
+	auto op = export_operator(func);
+	if (op.empty()) {
+		return export_special(func, export_arguments(args, sub));
+	}
+	auto idx = order.find(-1, op);
+
 	parse_expression::expression result;
 	result.valid = true;
 
-	auto op = export_operator(func);
-	result.level = op.first;
-	result.type = order.type(op.first);
-	if (op.second >= 0) {
-		result.operators.push_back(order.at(op.first, op.second));
-	}
+	result.level = idx.level;
+	result.type = order.type(result.level);
+	result.operators.push_back(op);
 
-	result.arguments = export_arguments(func, args, sub);
+	result.arguments = export_arguments(args, sub);
 	return result;
 }
 
@@ -132,7 +159,7 @@ parse_expression::expression ExpressionExporter::export_expression(const Express
 	return export_expression(Operation::IDENTITY, {Operand::undef()});
 }
 
-parse_expression::assignment ExpressionExporter::export_assignment(const Action &expr) const {
+parse_expression::assignment ExpressionExporter::export_expression(const Action &expr) const {
 	parse_expression::assignment result;
 	result.valid = true;
 
@@ -162,11 +189,10 @@ parse_expression::expression ExpressionExporter::export_expression(const Paralle
 	result.valid = true;
 
 	auto op = export_operator(Operation::WIRE_AND);
-	result.level = op.first;
-	result.type = order.type(op.first);
-	if (op.second >= 0) {
-		result.operators.push_back(order.at(op.first, op.second));
-	}
+	auto idx = order.find(-1, op);
+	result.level = idx.level;
+	result.type = order.type(result.level);
+	result.operators.push_back(op);
 
 	for (const Action &act : expr.actions) {
 		result.arguments.push_back(export_action(act));
@@ -174,17 +200,16 @@ parse_expression::expression ExpressionExporter::export_expression(const Paralle
 	return result;
 }
 
-parse_expression::expression ExpressionExporter::export_composition(const Choice &expr) const {
+parse_expression::expression ExpressionExporter::export_expression(const Choice &expr) const {
 	const parse_expression::precedence_set &order = precedence();
 	parse_expression::expression result;
 	result.valid = true;
 
 	auto op = export_operator(Operation::WIRE_OR);
-	result.level = op.first;
-	result.type = order.type(op.first);
-	if (op.second >= 0) {
-		result.operators.push_back(order.at(op.first, op.second));
-	}
+	auto idx = order.find(-1, op);
+	result.level = idx.level;
+	result.type = order.type(result.level);
+	result.operators.push_back(op);
 
 	for (const Parallel &para : expr.terms) {
 		result.arguments.push_back({-1, std::shared_ptr<parse::syntax>(export_expression(para).clone())});
