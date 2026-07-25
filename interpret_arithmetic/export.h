@@ -13,13 +13,12 @@ namespace arithmetic {
 
 string export_value(const Value &v);
 
-struct Exporter {
+struct ExpressionExporter {
 	// override these
 	virtual parse_expression::operation export_operator(int func) const = 0;
 	virtual const parse_expression::precedence_set &precedence() const = 0;
 	virtual parse_expression::expression::argument export_constant(Value value) const;
 	virtual parse_expression::expression::argument export_literal(size_t index) const;
-	virtual parse_expression::expression::argument export_action(const Action &act) const;
 	virtual parse_expression::expression export_special(int func, const vector<parse_expression::expression::argument> &args) const;
 
 	// these don't need to be overridden
@@ -29,8 +28,18 @@ struct Exporter {
 	virtual parse_expression::expression export_expression(int type, const vector<Value> &arr) const;
 	virtual parse_expression::expression export_expression(int func, vector<Operand> args, const vector<parse_expression::expression> *sub = nullptr) const;
 	virtual parse_expression::expression export_expression(const Expression &expr) const;
+};
+
+struct CompositionExporter {
+	// override these
+	virtual parse_expression::operation export_operator(int func) const = 0;
+	virtual const parse_expression::precedence_set &precedence() const = 0;
+	virtual parse_expression::expression::argument export_action(const Action &act) const = 0;
+
+	// these don't need to be overridden
 	virtual parse_expression::expression export_expression(const Parallel &expr) const;
 	virtual parse_expression::expression export_expression(const Choice &expr) const;
 };
+
 
 }

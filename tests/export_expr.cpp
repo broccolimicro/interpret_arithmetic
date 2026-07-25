@@ -83,7 +83,33 @@ parse_expression::expression::argument ExpressionExporter::export_literal(size_t
 	return {1, std::shared_ptr<parse::syntax>(result.clone())};
 }
 
+parse_expression::expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets) {
+	return ExpressionExporter(nets).export_expression(expr);
+}
 
+parse_expression::assignment export_assignment(const arithmetic::Action &expr, ucs::ConstNetlist nets) {
+	parse_expression::assignment result;
+	result.valid = true;
+
+	if (not expr.lvalue.isUndef()) {
+		result.lvalue.push_back(export_expression(expr.lvalue, nets));
+	}
+
+	// TODO(edward.bingham) we need type information about the lvalue here
+	arithmetic::Operand top = expr.rvalue.top;
+	if (top.isConst() and top.cnst.isNeutral()) {
+		result.operation = "-";
+	} else if (top.isConst() and top.cnst.isUnstable()) {
+		result.operation = "~";
+	} else if (top.isConst() and top.cnst.type == arithmetic::Value::WIRE and top.cnst.isValid()) {
+		result.operation = "+";
+	} else {
+		result.rvalue = export_expression(expr.rvalue, nets);
+		result.operation = "=";
+	}
+
+	return result;
+}
 
 CompositionExporter::CompositionExporter(ucs::ConstNetlist nets) : nets(nets) {
 }
@@ -108,37 +134,7 @@ const parse_expression::precedence_set &CompositionExporter::precedence() const 
 }
 
 parse_expression::expression::argument CompositionExporter::export_action(const arithmetic::Action &expr) const {
-	parse_expression::assignment result;
-	result.valid = true;
-
-	if (not expr.lvalue.isUndef()) {
-		result.lvalue.push_back(export_expression(expr.lvalue));
-	}
-
-	// TODO(edward.bingham) we need type information about the lvalue here
-	arithmetic::Operand top = expr.rvalue.top;
-	if (top.isConst() and top.cnst.isNeutral()) {
-		result.operation = "-";
-	} else if (top.isConst() and top.cnst.isUnstable()) {
-		result.operation = "~";
-	} else if (top.isConst() and top.cnst.type == arithmetic::Value::WIRE and top.cnst.isValid()) {
-		result.operation = "+";
-	} else {
-		result.rvalue = export_expression(expr.rvalue);
-		result.operation = "=";
-	}
-
-	return {1, std::shared_ptr<parse::syntax>(result.clone())};
-}
-
-
-
-parse_expression::expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets) {
-	return ExpressionExporter(nets).export_expression(expr);
-}
-
-parse_expression::assignment export_assignment(const arithmetic::Action &expr, ucs::ConstNetlist nets) {
-	return ExpressionExporter(nets).export_expression(expr);
+	return {1, std::shared_ptr<parse::syntax>(export_assignment(expr, nets).clone())};
 }
 
 parse_expression::expression export_composition(const arithmetic::Parallel &expr, ucs::ConstNetlist nets) {

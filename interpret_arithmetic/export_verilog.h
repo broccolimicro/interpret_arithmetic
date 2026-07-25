@@ -15,11 +15,11 @@ namespace parse_verilog {
 
 string export_value(const arithmetic::Value &v);
 
-struct Exporter : arithmetic::Exporter {
+struct ExpressionExporter : arithmetic::ExpressionExporter {
 	ucs::ConstNetlist nets;
 
-	Exporter(ucs::ConstNetlist nets);
-	~Exporter();
+	ExpressionExporter(ucs::ConstNetlist nets);
+	~ExpressionExporter();
 
 	parse_expression::operation export_operator(int func) const override;
 	const parse_expression::precedence_set &precedence() const override;
