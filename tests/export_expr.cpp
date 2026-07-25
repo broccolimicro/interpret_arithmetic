@@ -92,7 +92,7 @@ parse_expression::assignment export_assignment(const arithmetic::Action &expr, u
 	result.valid = true;
 
 	if (not expr.lvalue.isUndef()) {
-		result.lvalue.push_back(export_expression(expr.lvalue, nets));
+		result.left.push_back(export_expression(expr.lvalue, nets));
 	}
 
 	// TODO(edward.bingham) we need type information about the lvalue here
@@ -104,7 +104,7 @@ parse_expression::assignment export_assignment(const arithmetic::Action &expr, u
 	} else if (top.isConst() and top.cnst.type == arithmetic::Value::WIRE and top.cnst.isValid()) {
 		result.operation = "+";
 	} else {
-		result.rvalue = export_expression(expr.rvalue, nets);
+		result.right = export_expression(expr.rvalue, nets);
 		result.operation = "=";
 	}
 

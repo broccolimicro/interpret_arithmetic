@@ -203,25 +203,25 @@ arithmetic::Choice CompositionImporter::import_term(const parse_expression::expr
 	arithmetic::Action result;
 	if (assign.operation.empty()) {
 		result.lvalue = arithmetic::Expression::undef();
-		if (assign.lvalue[0].valid) {
-			result.rvalue = in.import_expression(assign.lvalue[0], tokens);
+		if (assign.left[0].valid) {
+			result.rvalue = in.import_expression(assign.left[0], tokens);
 		}
 	} else if (assign.operation == "+") {
-		if (assign.lvalue.size() > 0) {
-			result.lvalue = in.import_expression(assign.lvalue[0], tokens);
+		if (assign.left.size() > 0) {
+			result.lvalue = in.import_expression(assign.left[0], tokens);
 		}
 		result.rvalue = arithmetic::Expression::vdd();
 	} else if (assign.operation == "-") {
-		if (assign.lvalue.size() > 0) {
-			result.lvalue = in.import_expression(assign.lvalue[0], tokens);
+		if (assign.left.size() > 0) {
+			result.lvalue = in.import_expression(assign.left[0], tokens);
 		}
 		result.rvalue = arithmetic::Expression::gnd();
 	} else if (assign.operation == "=") {
-		if (assign.lvalue.size() > 0) {
-			result.lvalue = in.import_expression(assign.lvalue[0], tokens);
+		if (assign.left.size() > 0) {
+			result.lvalue = in.import_expression(assign.left[0], tokens);
 		}
-		if (assign.rvalue.valid) {
-			result.rvalue = in.import_expression(assign.rvalue, tokens);
+		if (assign.right.valid) {
+			result.rvalue = in.import_expression(assign.right, tokens);
 		}
 	}
 
