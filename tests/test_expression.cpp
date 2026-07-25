@@ -1,18 +1,15 @@
 #include <gtest/gtest.h>
 #include <parse/default/line_comment.h>
 #include <parse/default/block_comment.h>
-#include <parse_expression/expression.h>
-#include <sstream>
 #include <string>
 
 #include <arithmetic/rewrite.h>
 #include <arithmetic/algorithm.h>
-
-#include <interpret_arithmetic/export.h>
+#include <common/mock_netlist.h>
 
 #include "expression.h"
 #include "import_expr.h"
-#include <common/mock_netlist.h>
+#include "export_expr.h"
 
 using namespace std;
 
@@ -21,22 +18,21 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	string test_code = "a & b | ~c";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("basic_boolean", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
+	test::expression in(tokens);
 
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
 
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -48,19 +44,18 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	string test_code = "(a & b) | (~c & d)";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("complex_boolean", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -72,17 +67,16 @@ TEST(ExpressionParser, ArithmeticOperations) {
 	string test_code = "a + b * c";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("arithmetic_ops", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
-	expression out = export_expression<expression>(expr, v);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -94,19 +88,18 @@ TEST(ExpressionParser, ComparisonOperations) {
 	string test_code = "a < b & c == d";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("comparison_ops", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -118,19 +111,18 @@ TEST(ExpressionParser, MixedOperations) {
 	string test_code = "(a + b > c) & (d * e < f)";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("mixed_ops", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -142,19 +134,18 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	string test_code = "+a & -b";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("unary_ops", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -166,19 +157,18 @@ TEST(ExpressionParser, BitShifting) {
 	string test_code = "a << 2 | b >> 3";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("shift_ops", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -190,19 +180,18 @@ TEST(ExpressionParser, Constants) {
 	string test_code = "a & 42 | b & 0";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("constants", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -214,19 +203,18 @@ TEST(ExpressionParser, TrueFalse) {
 	string test_code = "a & vdd | b & gnd";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("true_false", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -238,18 +226,16 @@ TEST(ExpressionParser, DifferentRegions) {
 	string test_code = "a'1 & b'2 | c'3";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("regions", test_code);
 
 	MockNetlist v;
 
-	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
-	expression out = export_expression<expression>(expr, v);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -260,19 +246,18 @@ TEST(ExpressionParser, Function) {
 	string test_code = "x + y.myfunc(a, b, c)";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("function", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -283,19 +268,18 @@ TEST(ExpressionParser, EmptyFunction) {
 	string test_code = "x + z.f.y.myfunc()";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("function", test_code);
 
 	MockNetlist v;
 	
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -306,19 +290,18 @@ TEST(ExpressionParser, BuiltinFunction) {
 	string test_code = "x + myfunc(y,z)";
 
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("function", test_code);
 
 	MockNetlist v;
 
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -329,19 +312,18 @@ TEST(ExpressionParser, arrays) {
 	string test_code = "x[y] + [a, b, c][2]";
 
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	expression::register_syntax(tokens);
+	test::expression::register_syntax(tokens);
 	tokens.insert("function", test_code);
 
 	MockNetlist v;
 
-	expression in(tokens);
-	arithmetic::Expression expr = import_expression(in, v, 0, &tokens, true);
+	test::expression in(tokens);
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
 	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
-	expression out = export_expression<expression>(expr, v);
+	auto out = test::export_expression(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);

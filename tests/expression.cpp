@@ -6,7 +6,7 @@
 namespace test {
 
 std::shared_ptr<parse_expression::config> expression_config::cfg = 
-	std::make_shared<parse_expression::config>(parse_test::makeExprConfig());
+	std::make_shared<parse_expression::config>(test::makeExprConfig());
 
 expression_config::expression_config() {
 	debug_name = "test";
@@ -16,7 +16,7 @@ expression_config::~expression_config() {
 }
 
 std::shared_ptr<parse_expression::config> composition_config::cfg = 
-	std::make_shared<parse_expression::config>(parse_test::makeCompConfig());
+	std::make_shared<parse_expression::config>(test::makeCompConfig());
 
 composition_config::composition_config() {
 	debug_name = "test";
@@ -27,11 +27,11 @@ composition_config::~composition_config() {
 
 parse_expression::config makeExprConfig() {
 	parse_expression::config cfg;
-	int CONSTANT = cfg.push<parse_expression::default_constant>("constant");
-	int LITERAL = cfg.push<parse_expression::default_literal>("literal");
-	int TYPE = cfg.push<parse::wrapper<parse::instance> >("type");
-	int TERM = cfg.push<parse::wrapper<parse::instance> >("term");
-	int LABEL = cfg.push<parse::wrapper<parse::number> >("label");
+	int CONSTANT = cfg.push<constant>("constant");
+	int LITERAL = cfg.push<literal>("literal");
+	int TYPE = cfg.push<type_name>("type");
+	int TERM = cfg.push<term_name>("term");
+	int LABEL = cfg.push<label>("label");
 
 	cfg.base = {LITERAL, CONSTANT};
 
@@ -84,7 +84,6 @@ parse_expression::config makeExprConfig() {
 	cfg.order.push_back("~", "", "", "");
 	cfg.order.push_back("+", "", "", "");
 	cfg.order.push_back("-", "", "", "");
-	cfg.order.push_back("?", "", "", "");
 
 	cfg.order.push(operation_set::MODIFIER);
 	cfg.order.push_back("", "'", "", "", {LITERAL}, {LABEL});
@@ -92,11 +91,11 @@ parse_expression::config makeExprConfig() {
 	cfg.order.push(operation_set::MODIFIER);
 	//cfg.order.push_back("", "{", ",", "}");
 	cfg.order.push_back("", "(", ",", ")", {TERM});
-	cfg.order.push_back("", ".", "", "", {LITERAL}, {LABEL});
+	cfg.order.push_back("", ".", "", "", {LITERAL}, {LITERAL});
 	cfg.order.push_back("", "[", ":", "]");
 
 	cfg.order.push(operation_set::MODIFIER);
-	cfg.order.push_back("", "::", "", "", {TYPE}, {LABEL});
+	cfg.order.push_back("", "::", "", "", {TYPE}, {LITERAL});
 
 	cfg.order.push(operation_set::GROUP);
 	cfg.order.push_back("[", "", ",", "]");

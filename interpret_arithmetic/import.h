@@ -10,9 +10,13 @@
 namespace arithmetic {
 
 template <typename T>
-struct ExpressionImporter {
+struct Importer {
 	virtual T import_term(const parse_expression::expression::argument &syntax, tokenizer *tokens) const = 0;
-	virtual void import_properties(parse_expression::operation op, const vector<parse_expression::expression::argument> &syntax, tokenizer *tokens) {
+	virtual void push_properties(parse_expression::operation op, const vector<parse_expression::expression::argument> &args, tokenizer *tokens) {
+		// default behavior is NOP
+	}
+
+	virtual void pop_properties(parse_expression::operation op) {
 		// default behavior is NOP
 	}
 
@@ -84,7 +88,7 @@ struct ExpressionImporter {
 			tokens->load(&syntax);
 		}
 
-		if (not syntax.precedence.isValidLevel(syntax.level)) {
+		if (syntax.type < 0) {
 			if (tokens != NULL) {
 				tokens->internal("unrecognized operation", __FILE__, __LINE__);
 			} else {
@@ -101,38 +105,34 @@ struct ExpressionImporter {
 			}
 		}
 
-		parse_expression::operation op = syntax.precedence.at(syntax.level, syntax.operators.back());
-		import_properties(op, syntax.arguments, tokens);
-		if (syntax.precedence.isGroup(syntax.level)) {
-			return import_group(op, import_arguments(op, syntax.arguments, tokens));
-		} else if (syntax.precedence.isModifier(syntax.level)) {
-			return import_modifier(op, import_arguments(op, syntax.arguments, tokens));
-		} else if (syntax.precedence.isBinary(syntax.level) or syntax.precedence.isUnary(syntax.level)) {
-			T result;
+		T result;
+
+		parse_expression::operation op = syntax.operators[0];
+		push_properties(op, syntax.arguments, tokens);
+		if (syntax.isGroup()) {
+			result = import_group(op, import_arguments(op, syntax.arguments, tokens), tokens);
+		} else if (syntax.isModifier()) {
+			result = import_modifier(op, import_arguments(op, syntax.arguments, tokens), tokens);
+		} else if (syntax.isBinary() or syntax.isUnary()) {
 			if (not syntax.arguments.empty()) {
 				result = import_argument(syntax.arguments[0], tokens);
 			}
 
 			if (syntax.arguments.size() == 1u) {
-				if (syntax.precedence.isUnary(syntax.level)) {
+				if (syntax.isUnary()) {
 					for (int i = (int)syntax.operators.size()-1; i >= 0; i--) {
-						parse_expression::operation op = syntax.precedence.at(syntax.level, syntax.operators[i]);
-
-						result = import_unary(op, result);
+						result = import_unary(syntax.operators[i], result, tokens);
 					}
 				}
 			} else {
 				for (size_t i = 1; i < syntax.arguments.size(); i++) {
-					parse_expression::operation op = syntax.precedence.at(syntax.level, syntax.operators[i-1]);
-					
 					T sub = import_argument(syntax.arguments[i], tokens);
-					result = import_binary(op, result, sub);
+					result = import_binary(syntax.operators[i-1], result, sub, tokens);
 				}
 			}
-
-			return result;
 		}
-		return T();
+		pop_properties(op);
+		return result;
 	}
 };
 

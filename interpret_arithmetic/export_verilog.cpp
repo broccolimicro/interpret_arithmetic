@@ -35,13 +35,13 @@ string export_value(const arithmetic::Value &v) {
 	return "";
 }
 
-ExpressionExporter::ExpressionExporter(ucs::ConstNetlist nets) : nets(nets) {
+Exporter::Exporter(ucs::ConstNetlist nets) : nets(nets) {
 }
 
-ExpressionExporter::~ExpressionExporter() {
+Exporter::~Exporter() {
 }
 
-parse_expression::operation ExpressionExporter::export_operator(int func) const {
+parse_expression::operation Exporter::export_operator(int func) const {
 	using OpType = arithmetic::Operation::OpType;
 	using operation = parse_expression::operation;
 
@@ -86,37 +86,32 @@ parse_expression::operation ExpressionExporter::export_operator(int func) const 
 	return operation();
 }
 
-const parse_expression::precedence_set &ExpressionExporter::precedence() const {
+const parse_expression::precedence_set &Exporter::precedence() const {
 	return parse_verilog::config::cfg->order;
 }
 
-parse_expression::expression::argument ExpressionExporter::export_constant(arithmetic::Value value) const {
+parse_expression::expression::argument Exporter::export_constant(arithmetic::Value value) const {
 	parse::wrapper<number> result;
 	result.value = parse_verilog::export_value(value);
 	return {0, std::shared_ptr<parse::syntax>(result.clone())};
 }
 
-parse_expression::expression::argument ExpressionExporter::export_literal(size_t index) const {
+parse_expression::expression::argument Exporter::export_literal(size_t index) const {
 	parse::wrapper<parse::instance> result;
 	result.value = nets.netAt(index);
 	return {1, std::shared_ptr<parse::syntax>(result.clone())};
 }
 
-parse_expression::expression::argument ExpressionExporter::export_action(const arithmetic::Action &act) const {
-	internal("", "action export not defined", __FILE__, __LINE__);
-	return {-1, nullptr};
-}
-
-parse_expression::expression ExpressionExporter::export_special(int func, const vector<parse_expression::expression::argument> &args) const {
+parse_expression::expression Exporter::export_special(int func, const vector<parse_expression::expression::argument> &args) const {
 	using OpType = arithmetic::Operation::OpType;
 	if (func == OpType::BOOLEAN_XOR) {
 		return export_boolean_xor(args);
 	}
 
-	return arithmetic::ExpressionExporter::export_special(func, args);
+	return arithmetic::Exporter::export_special(func, args);
 }
 
-parse_expression::expression ExpressionExporter::export_boolean_xor(const vector<parse_expression::expression::argument> &args) const {
+parse_expression::expression Exporter::export_boolean_xor(const vector<parse_expression::expression::argument> &args) const {
 	using OpType = arithmetic::Operation::OpType;
 	const parse_expression::precedence_set &order = precedence();
 
@@ -191,7 +186,7 @@ parse_expression::expression ExpressionExporter::export_boolean_xor(const vector
 	return top;
 }
 
-/*parse_expression::expression ExpressionExporter::export_member_call(const vector<parse_expression::expression::argument> &args) const {
+/*parse_expression::expression Exporter::export_member_call(const vector<parse_expression::expression::argument> &args) const {
 	using OpType = arithmetic::Operation::OpType;
 	const parse_expression::precedence_set &order = precedence();
 
@@ -236,19 +231,7 @@ parse_expression::expression ExpressionExporter::export_boolean_xor(const vector
 }*/
 
 parse_expression::expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets) {
-	return ExpressionExporter(nets).export_expression(expr);
-}
-
-parse_expression::assignment export_assignment(const arithmetic::Action &expr, ucs::ConstNetlist nets) {
-	return ExpressionExporter(nets).export_expression(expr);
-}
-
-parse_expression::expression export_composition(const arithmetic::Parallel &expr, ucs::ConstNetlist nets) {
-	return ExpressionExporter(nets).export_expression(expr);
-}
-
-parse_expression::expression export_composition(const arithmetic::Choice &expr, ucs::ConstNetlist nets) {
-	return ExpressionExporter(nets).export_expression(expr);
+	return Exporter(nets).export_expression(expr);
 }
 
 }

@@ -1,34 +1,31 @@
 #include <gtest/gtest.h>
 #include <parse/default/line_comment.h>
 #include <parse/default/block_comment.h>
-#include <sstream>
 #include <string>
 
-#include <interpret_arithmetic/export.h>
+#include <common/mock_netlist.h>
 
 #include "expression.h"
 #include "import_expr.h"
-#include <common/mock_netlist.h>
+#include "export_expr.h"
 
 using namespace std;
 
 TEST(CompositionParser, BasicParallelComposition) {
-	// Test parallel composition (,)
+	// Test parallel test::composition (,)
 	string test_code = "a+, b+, c-";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("parallel_test", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
-	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(parallel, v);
+	test::composition in(tokens);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -40,18 +37,16 @@ TEST(CompositionParser, ComplexParallelComposition) {
 	string test_code = "a+, b = c & d, e-";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("complex_parallel", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
-	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(parallel, v);
+	test::composition in(tokens);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -65,18 +60,16 @@ TEST(CompositionParser, BasicChoice) {
 	string test_code = "(a+) : (b-)";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("choice_test", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
-	arithmetic::Choice choice = arithmetic::import_choice(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(choice, v);
+	test::composition in(tokens);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -88,18 +81,16 @@ TEST(CompositionParser, ComplexChoice) {
 	string test_code = "(a = x & y) : (b-, c+)";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("complex_choice", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
-	arithmetic::Choice choice = arithmetic::import_choice(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(choice, v);
+	test::composition in(tokens);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -111,19 +102,17 @@ TEST(CompositionParser, NestedCompositions) {
 	string test_code = "(a+, b+) : (c-, (d+ : e+))";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("nested_test", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
+	test::composition in(tokens);
 	// This might need to be adapted based on how nested compositions are handled
-	arithmetic::Choice choice = arithmetic::import_choice(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(choice, v);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -135,19 +124,17 @@ TEST(CompositionParser, GuardedCompositions) {
 	string test_code = "(c+, d+) : e : (f-)";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("guarded_test", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
+	test::composition in(tokens);
 	// This might need adaptation based on how guarded compositions are handled
-	arithmetic::Choice choice = arithmetic::import_choice(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(choice, v);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -159,18 +146,16 @@ TEST(CompositionParser, RoundTripConversion) {
 	string test_code = "a+, b-, c = d & e";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("round_trip", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
-	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(parallel, v);
+	test::composition in(tokens);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -181,18 +166,16 @@ TEST(CompositionParser, ChannelActions) {
 	string test_code = "A!B?";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("channel_actions", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
-	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(parallel, v);
+	test::composition in(tokens);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
@@ -203,18 +186,16 @@ TEST(CompositionParser, ChannelProbe) {
 	string test_code = "A!#B";
 	
 	tokenizer tokens;
-	setup_expressions();
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
-	composition::register_syntax(tokens);
+	test::composition::register_syntax(tokens);
 	tokens.insert("channel_probe", test_code);
 
 	MockNetlist v;
-	ExpressionInterpreter imp;
 	
-	composition in(tokens);
-	arithmetic::Parallel parallel = arithmetic::import_parallel(imp, in, v, 0, &tokens, true);
-	composition out = export_composition<composition>(parallel, v);
+	test::composition in(tokens);
+	arithmetic::Choice expr = test::import_composition(in, v, &tokens);
+	auto out = test::export_composition(expr, v);
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);

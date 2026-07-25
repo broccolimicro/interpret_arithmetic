@@ -29,12 +29,22 @@ string export_value(const Value &v) {
 	return "";
 }
 
-parse_expression::expression::argument ExpressionExporter::export_action(const Action &act) const {
+parse_expression::expression::argument Exporter::export_constant(Value value) const {
+	internal("", "constant export not defined", __FILE__, __LINE__);
+	return {-1, nullptr};
+}
+
+parse_expression::expression::argument Exporter::export_literal(size_t index) const {
+	internal("", "literal export not defined", __FILE__, __LINE__);
+	return {-1, nullptr};
+}
+
+parse_expression::expression::argument Exporter::export_action(const Action &act) const {
 	internal("", "action export not defined", __FILE__, __LINE__);
 	return {-1, nullptr};
 }
 
-parse_expression::expression ExpressionExporter::export_special(int func, const vector<parse_expression::expression::argument> &args) const {
+parse_expression::expression Exporter::export_special(int func, const vector<parse_expression::expression::argument> &args) const {
 	if (func >= 0 and func < (int)arithmetic::Operation::operators.size()) {
 		internal("", "no export for operator '" + arithmetic::Operation::operators[func].to_string() + "'", __FILE__, __LINE__);
 	} else {
@@ -48,24 +58,41 @@ parse_expression::expression ExpressionExporter::export_special(int func, const 
 
 
 // Functions that don't need to be overridden
-
-parse_expression::expression::argument ExpressionExporter::export_operand(Operand arg) const {
-	if (arg.isUndef()) {
+parse_expression::expression::argument Exporter::export_argument(Operand op, const vector<parse_expression::expression> *sub) const {
+	if (op.isUndef()) {
 		return {-1, nullptr};
-	} else if (arg.isConst()) {
-		if (arg.cnst.type == arithmetic::Value::ARRAY
-			or arg.cnst.type == arithmetic::Value::STRUCT) {
-			return {-1, std::shared_ptr<parse::syntax>(export_expression(arg.cnst.type, arg.cnst.arr).clone())};
+	} else if (op.isConst()) {
+		if (op.cnst.type == arithmetic::Value::ARRAY
+			or op.cnst.type == arithmetic::Value::STRUCT) {
+			return {-1, std::shared_ptr<parse::syntax>(export_expression(op.cnst.type, op.cnst.arr).clone())};
 		}
-		return export_constant(arg.cnst);
-	} else if (arg.isVar()) {
-		return export_literal(arg.index);
+		return export_constant(op.cnst);
+	} else if (op.isVar()) {
+		return export_literal(op.index);
+	} else if (op.isExpr()) {
+		if (sub == nullptr) {
+			internal("", "no sub expressions for lookup", __FILE__, __LINE__);
+			return {-1, nullptr};
+		}
+		parse_expression::expression::argument result;
+		result.type = -1;
+		result.ptr = std::shared_ptr<parse::syntax>((*sub)[op.index].clone());
+		return result;
 	}
+	 
 	internal("", "operand export not defined", __FILE__, __LINE__);
 	return {-1, nullptr};
 }
 
-parse_expression::expression ExpressionExporter::export_expression(int type, const vector<Value> &arr) const {
+vector<parse_expression::expression::argument> Exporter::export_arguments(const vector<Operand> &args, const vector<parse_expression::expression> *sub) const {
+	vector<parse_expression::expression::argument> result;
+	for (const Operand &arg : args) {
+		result.push_back(export_argument(arg, sub));
+	}
+	return result;
+}
+
+parse_expression::expression Exporter::export_expression(int type, const vector<Value> &arr) const {
 	vector<Operand> args;
 	for (const Value &v : arr) {
 		args.push_back(Operand(v));
@@ -79,25 +106,7 @@ parse_expression::expression ExpressionExporter::export_expression(int type, con
 	return export_expression(Operation::IDENTITY, {Operand::undef()});
 }
 
-parse_expression::expression::argument ExpressionExporter::export_argument(Operand op, const vector<parse_expression::expression> *sub) const {
-	if (op.isExpr() and sub != nullptr) {
-		parse_expression::expression::argument result;
-		result.type = -1;
-		result.ptr = std::shared_ptr<parse::syntax>((*sub)[op.index].clone());
-		return result;
-	}
-	return export_operand(op);
-}
-
-vector<parse_expression::expression::argument> ExpressionExporter::export_arguments(const vector<Operand> &args, const vector<parse_expression::expression> *sub) const {
-	vector<parse_expression::expression::argument> result;
-	for (const Operand &arg : args) {
-		result.push_back(export_argument(arg, sub));
-	}
-	return result;
-}
-
-parse_expression::expression ExpressionExporter::export_expression(int func, vector<Operand> args, const vector<parse_expression::expression> *sub) const {
+parse_expression::expression Exporter::export_expression(int func, vector<Operand> args, const vector<parse_expression::expression> *sub) const {
 	const parse_expression::precedence_set &order = precedence();
 
 	if (func == Operation::VALIDITY) {
@@ -140,7 +149,7 @@ parse_expression::expression ExpressionExporter::export_expression(int func, vec
 	return result;
 }
 
-parse_expression::expression ExpressionExporter::export_expression(const Expression &expr) const {
+parse_expression::expression Exporter::export_expression(const Expression &expr) const {
 	if (not expr.top.isExpr()) {
 		return export_expression(Operation::IDENTITY, {expr.top});
 	}
@@ -159,31 +168,7 @@ parse_expression::expression ExpressionExporter::export_expression(const Express
 	return export_expression(Operation::IDENTITY, {Operand::undef()});
 }
 
-parse_expression::assignment ExpressionExporter::export_expression(const Action &expr) const {
-	parse_expression::assignment result;
-	result.valid = true;
-
-	if (not expr.lvalue.isUndef()) {
-		result.lvalue.push_back(export_expression(expr.lvalue));
-	}
-
-	// TODO(edward.bingham) we need type information about the lvalue here
-	Operand top = expr.rvalue.top;
-	if (top.isConst() and top.cnst.isNeutral()) {
-		result.operation = "-";
-	} else if (top.isConst() and top.cnst.isUnstable()) {
-		result.operation = "~";
-	} else if (top.isConst() and top.cnst.type == Value::WIRE and top.cnst.isValid()) {
-		result.operation = "+";
-	} else {
-		result.rvalue = export_expression(expr.rvalue);
-		result.operation = "=";
-	}
-
-	return result;
-}
-
-parse_expression::expression ExpressionExporter::export_expression(const Parallel &expr) const {
+parse_expression::expression Exporter::export_expression(const Parallel &expr) const {
 	const parse_expression::precedence_set &order = precedence();
 	parse_expression::expression result;
 	result.valid = true;
@@ -200,7 +185,7 @@ parse_expression::expression ExpressionExporter::export_expression(const Paralle
 	return result;
 }
 
-parse_expression::expression ExpressionExporter::export_expression(const Choice &expr) const {
+parse_expression::expression Exporter::export_expression(const Choice &expr) const {
 	const parse_expression::precedence_set &order = precedence();
 	parse_expression::expression result;
 	result.valid = true;
