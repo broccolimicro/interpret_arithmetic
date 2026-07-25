@@ -23,7 +23,9 @@ arithmetic::Expression ExpressionImporter::import_term(const parse_expression::e
 		return arithmetic::import_constant(value, tokens);
 	} else if (type == "literal") {
 		std::string name = syntax.ptr->get<literal>().name;
-		name += "'" + std::to_string(region.back());
+		if (region.back() != 0) {
+			name += "'" + std::to_string(region.back());
+		}
 		return arithmetic::import_literal(name, symbols, tokens, true);
 	} else if (type == "type") {
 		std::string name = syntax.ptr->get<type_name>().value;
@@ -43,7 +45,8 @@ void ExpressionImporter::push_properties(parse_expression::operation op, const v
 	if (op.is("", "'", "", "")) { // Region
 		int value = -1;
 		if (args.size() == 2u) {
-			value = atoi(args[1].ptr->get<label>().value.c_str());
+			std::string str = args[1].ptr->to_string("");
+			value = atoi(str.c_str());
 		} else {
 			error("", "operator ''' expects 2 arguments, found '" + ::to_string(args.size()) + "'", __FILE__, __LINE__);
 		}

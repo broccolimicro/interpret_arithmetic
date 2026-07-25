@@ -17,12 +17,20 @@ string export_value(const Value &v) {
 			return "vdd";
 		}
 	} else if (v.type == Value::BOOL) {
-		return ::to_string(v.bval);
+		if (v.bval) {
+			return "true";
+		} else {
+			return "false";
+		}
 	} else if (v.type == Value::INT) {
 		return ::to_string(v.ival);
 	} else if (v.type == Value::REAL) {
 		return ::to_string(v.rval);
 	} else if (v.type == Value::STRING) {
+		return "\"" + v.sval + "\"";
+	} else if (v.type == Value::TYPE) {
+		return v.sval;
+	} else if (v.type == Value::TERM) {
 		return v.sval;
 	}
 	internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
@@ -97,6 +105,50 @@ parse_expression::expression ExpressionExporter::export_expression(int type, con
 	return export_expression(Operation::IDENTITY, {Operand::undef()});
 }
 
+parse_expression::expression ExpressionExporter::export_member_call(const vector<parse_expression::expression::argument> &args) const {
+	using OpType = arithmetic::Operation::OpType;
+	const parse_expression::precedence_set &order = precedence();
+
+	if (args.size() < 2u) {
+		parse_expression::expression result;
+		result.valid = true;
+
+		result.level = -1;
+		result.type = -1;
+
+		result.arguments = args;
+		return result;
+	}
+
+	auto callOp = export_operator(OpType::CALL);
+	auto memberOp = export_operator(OpType::MEMBER);
+	if (callOp.empty() or memberOp.empty()) {
+		internal("", "call and member operators not defined for verilog", __FILE__, __LINE__);
+		return parse_expression::expression();
+	}
+
+	auto callIdx = order.find(-1, callOp);
+	auto memberIdx = order.find(-1, memberOp);
+
+	parse_expression::expression member;
+	member.valid = true;
+	member.level = memberIdx.level;
+	member.type = order.type(member.level);
+	member.operators.push_back(memberOp);
+	member.arguments.push_back(args[1]);
+	member.arguments.push_back(args[0]);
+
+	parse_expression::expression top;
+	top.valid = true;
+	top.level = callIdx.level;
+	top.type = order.type(top.level);
+	top.operators.push_back(callOp);
+	top.arguments.push_back({-1, std::shared_ptr<parse::syntax>(member.clone())});
+	top.arguments.insert(top.arguments.end(), args.begin()+2, args.end());
+	
+	return top;
+}
+
 parse_expression::expression ExpressionExporter::export_expression(int func, vector<Operand> args, const vector<parse_expression::expression> *sub) const {
 	const parse_expression::precedence_set &order = precedence();
 
@@ -109,18 +161,11 @@ parse_expression::expression ExpressionExporter::export_expression(int func, vec
 	} else if (func == Operation::NEGATIVE) {
 		args.push_back(Operand::intOf(0));
 		func = Operation::LESS;
-	} else if (func == Operation::IDENTITY) {
-		parse_expression::expression result;
-		result.valid = true;
-
-		result.level = -1;
-		result.type = -1;
-
-		result.arguments = export_arguments(args, sub);
-		return result;
 	} else if (func == Operation::INVERSE) {
 		args.insert(args.begin(), Operand::realOf(1.0));
 		func = Operation::DIVIDE;
+	} else if (func == Operation::MEMBER_CALL) {
+		return export_member_call(export_arguments(args, sub));
 	}
 
 	auto op = export_operator(func);
@@ -134,7 +179,9 @@ parse_expression::expression ExpressionExporter::export_expression(int func, vec
 
 	result.level = idx.level;
 	result.type = order.type(result.level);
-	result.operators.push_back(op);
+	if (func != Operation::IDENTITY) {
+		result.operators.push_back(op);
+	}
 
 	result.arguments = export_arguments(args, sub);
 	return result;

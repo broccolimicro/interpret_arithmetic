@@ -186,50 +186,6 @@ parse_expression::expression ExpressionExporter::export_boolean_xor(const vector
 	return top;
 }
 
-/*parse_expression::expression ExpressionExporter::export_member_call(const vector<parse_expression::expression::argument> &args) const {
-	using OpType = arithmetic::Operation::OpType;
-	const parse_expression::precedence_set &order = precedence();
-
-	if (args.size() < 2u) {
-		parse_expression::expression result;
-		result.valid = true;
-
-		result.level = -1;
-		result.type = -1;
-
-		result.arguments = export_arguments(args, sub);
-		return result;
-	}
-
-	auto callOp = export_operator(OpType::CALL);
-	auto memberOp = export_operator(OpType::MEMBER);
-	if (callOp.empty() or memberOp.empty()) {
-		internal("", "call and member operators not defined for verilog", __FILE__, __LINE__);
-		return parse_expression::expression();
-	}
-
-	auto callIdx = order.find(-1, callOp);
-	auto memberIdx = order.find(-1, memberOp);
-
-	parse_expression::expression member;
-	member.valid = true;
-	member.level = memberIdx.level;
-	member.type = order.type(member.level);
-	member.operators.push_back(memberOp);
-	member.arguments.push_back(args[0]);
-	member.arguments.push_back(args[1]);
-
-	parse_expression::expression top;
-	top.valid = true;
-	top.level = callIdx.level;
-	top.type = order.type(top.level);
-	top.operators.push_back(callOp);
-	top.arguments.push_back({-1, std::shared_ptr<parse::syntax>(member.clone())});
-	top.arguments.insert(args.begin()+2, args.end());
-	
-	return top;
-}*/
-
 parse_expression::expression export_expression(const arithmetic::Expression &expr, ucs::ConstNetlist nets) {
 	return ExpressionExporter(nets).export_expression(expr);
 }

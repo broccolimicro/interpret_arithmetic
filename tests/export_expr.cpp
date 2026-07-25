@@ -48,9 +48,9 @@ parse_expression::operation ExpressionExporter::export_operator(int func) const 
 	case OpType::DIVIDE: return operation("", "", "/", "");
 	case OpType::MOD: return operation("", "", "%", "");
 	case OpType::CALL: return operation("", "(", ",", ")");
-	// MEMBER_CALL
+	// MEMBER_CALL - converted to MEMBER and CALL
 	//case OpType::CAST: return operation("", "(", "", ")");
-	case OpType::ARRAY: return operation("[", "", "", "]");
+	case OpType::ARRAY: return operation("[", "", ",", "]");
 	case OpType::INDEX: return operation("", "[", ":", "]");
 	//case OpType::STRUCT: return operation("'{", "", "", "}");
 	case OpType::MEMBER: return operation("", ".", "", "");

@@ -26,6 +26,9 @@ struct ExpressionExporter {
 	virtual vector<parse_expression::expression::argument> export_arguments(const vector<Operand> &args, const vector<parse_expression::expression> *sub) const;
 
 	virtual parse_expression::expression export_expression(int type, const vector<Value> &arr) const;
+
+	virtual parse_expression::expression export_member_call(const vector<parse_expression::expression::argument> &args) const;
+
 	virtual parse_expression::expression export_expression(int func, vector<Operand> args, const vector<parse_expression::expression> *sub = nullptr) const;
 	virtual parse_expression::expression export_expression(const Expression &expr) const;
 };

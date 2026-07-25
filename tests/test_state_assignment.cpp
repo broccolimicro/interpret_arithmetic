@@ -93,7 +93,7 @@ TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "d+");
+	EXPECT_EQ(out.to_string(), "d=true");
 	
 	// Test with gnd
 	test_code = "e = false";
@@ -110,6 +110,6 @@ TEST(StateAssignmentParser, AssignmentWithGndVdd) {
 
 	EXPECT_TRUE(tokens2.is_clean());
 	EXPECT_TRUE(out2.valid);
-	EXPECT_EQ(out2.to_string(), "e-");
+	EXPECT_EQ(out2.to_string(), "e=false");
 }
 

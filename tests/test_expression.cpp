@@ -261,7 +261,7 @@ TEST(ExpressionParser, Function) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "x+myfunc(y,a,b,c)");
+	EXPECT_EQ(out.to_string(), "x+y.myfunc(a,b,c)");
 }
 
 TEST(ExpressionParser, EmptyFunction) {
@@ -283,7 +283,7 @@ TEST(ExpressionParser, EmptyFunction) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "x+myfunc(z.f.y)");
+	EXPECT_EQ(out.to_string(), "x+z.f.y.myfunc()");
 }
 
 TEST(ExpressionParser, BuiltinFunction) {
