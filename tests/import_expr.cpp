@@ -235,7 +235,8 @@ void CompositionImporter::push_properties(parse_expression::operation op, const 
 	if (op.is("", "'", "", "")) { // Region
 		int value = -1;
 		if (args.size() == 2u) {
-			value = atoi(args[1].ptr->get<label>().value.c_str());
+			std::string str = args[1].ptr->to_string("");
+			value = atoi(str.c_str());
 		} else {
 			error("", "operator ''' expects 2 arguments, found '" + ::to_string(args.size()) + "'", __FILE__, __LINE__);
 		}
