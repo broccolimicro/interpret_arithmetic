@@ -38,6 +38,18 @@ struct Importer {
 		return left;
 	}
 
+	virtual T import_ternary(parse_expression::operation op, vector<T> args, tokenizer *tokens) const {
+		if (tokens != nullptr) {
+			tokens->internal("binary operations not supported by interpreter", __FILE__, __LINE__);
+		} else {
+			internal("", "binary operations not supported by interpreter", __FILE__, __LINE__);
+		}
+		if (args.empty()) {
+			return T();
+		}
+		return args[0];
+	}
+
 	virtual T import_group(parse_expression::operation op, vector<T> args, tokenizer *tokens) const {
 		if (tokens != nullptr) {
 			tokens->internal("group operations not supported by interpreter", __FILE__, __LINE__);
@@ -113,6 +125,8 @@ struct Importer {
 			result = import_group(op, import_arguments(op, syntax.arguments, tokens), tokens);
 		} else if (syntax.isModifier()) {
 			result = import_modifier(op, import_arguments(op, syntax.arguments, tokens), tokens);
+		} else if (syntax.isTernary()) {
+			result = import_ternary(op, import_arguments(op, syntax.arguments, tokens), tokens);
 		} else if (syntax.isBinary() or syntax.isUnary()) {
 			if (not syntax.arguments.empty()) {
 				result = import_argument(syntax.arguments[0], tokens);
