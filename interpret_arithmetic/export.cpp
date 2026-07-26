@@ -109,17 +109,6 @@ parse_expression::expression ExpressionExporter::export_member_call(const vector
 	using OpType = arithmetic::Operation::OpType;
 	const parse_expression::precedence_set &order = precedence();
 
-	if (args.size() < 2u) {
-		parse_expression::expression result;
-		result.valid = true;
-
-		result.level = -1;
-		result.type = -1;
-
-		result.arguments = args;
-		return result;
-	}
-
 	auto callOp = export_operator(OpType::CALL);
 	auto memberOp = export_operator(OpType::MEMBER);
 	if (callOp.empty() or memberOp.empty()) {
@@ -129,6 +118,16 @@ parse_expression::expression ExpressionExporter::export_member_call(const vector
 
 	auto callIdx = order.find(-1, callOp);
 	auto memberIdx = order.find(-1, memberOp);
+
+	if (args.size() < 2u) {
+		parse_expression::expression result;
+		result.valid = true;
+		result.level = callIdx.level;
+		result.type = order.type(result.level);
+		result.operators.push_back(callOp);
+		result.arguments = args;
+		return result;
+	}
 
 	parse_expression::expression member;
 	member.valid = true;

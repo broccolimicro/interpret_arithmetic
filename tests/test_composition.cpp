@@ -121,7 +121,7 @@ TEST(CompositionParser, NestedCompositions) {
 
 TEST(CompositionParser, GuardedCompositions) {
 	// Test guarded compositions
-	string test_code = "(c+, d+) : e : (f-)";
+	string test_code = "(c+, d+) : A.send(e) : (f-)";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
@@ -138,7 +138,7 @@ TEST(CompositionParser, GuardedCompositions) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "c+,d+:[e]:f-");
+	EXPECT_EQ(out.to_string(), "c+,d+:A.send(e):f-");
 }
 
 TEST(CompositionParser, RoundTripConversion) {
@@ -162,14 +162,14 @@ TEST(CompositionParser, RoundTripConversion) {
 	EXPECT_EQ(out.to_string(), "a+,b-,c=d&e");
 }
 
-TEST(CompositionParser, ChannelActions) {
-	string test_code = "A!B?";
+TEST(CompositionParser, NestedCalls) {
+	string test_code = "add(a,mul(b, c))";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	test::composition::register_syntax(tokens);
-	tokens.insert("channel_actions", test_code);
+	tokens.insert("nested_calls", test_code);
 
 	MockNetlist v;
 	
@@ -179,17 +179,17 @@ TEST(CompositionParser, ChannelActions) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "[send(A,recv(B))]");
+	EXPECT_EQ(out.to_string(), "add(a,mul(b,c))");
 }
 
-TEST(CompositionParser, ChannelProbe) {
-	string test_code = "A!#B";
+TEST(CompositionParser, NestedMemberCalls) {
+	string test_code = "A.send(B.peek())";
 	
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
 	test::composition::register_syntax(tokens);
-	tokens.insert("channel_probe", test_code);
+	tokens.insert("nested_member_calls", test_code);
 
 	MockNetlist v;
 	
@@ -199,5 +199,5 @@ TEST(CompositionParser, ChannelProbe) {
 
 	EXPECT_TRUE(tokens.is_clean());
 	EXPECT_TRUE(out.valid);
-	EXPECT_EQ(out.to_string(), "[send(A,peek(B))]");
+	EXPECT_EQ(out.to_string(), "A.send(B.peek())");
 }
