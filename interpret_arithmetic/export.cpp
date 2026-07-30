@@ -112,7 +112,7 @@ parse_expression::expression ExpressionExporter::export_member_call(const vector
 	auto callOp = export_operator(OpType::CALL);
 	auto memberOp = export_operator(OpType::MEMBER);
 	if (callOp.empty() or memberOp.empty()) {
-		internal("", "call and member operators not defined for verilog", __FILE__, __LINE__);
+		internal("", "call and member operators not defined", __FILE__, __LINE__);
 		return parse_expression::expression();
 	}
 

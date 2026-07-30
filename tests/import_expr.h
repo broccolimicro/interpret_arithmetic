@@ -3,14 +3,14 @@
 #include <vector>
 #include <arithmetic/expression.h>
 #include <arithmetic/action.h>
-#include <interpret_arithmetic/import.h>
+#include <parse_expression/import.h>
 #include <parse_expression/expression.h>
 #include <parse_expression/precedence.h>
 #include <common/net.h>
 
 namespace test {
 
-struct ExpressionImporter : arithmetic::Importer<arithmetic::Expression> {
+struct ExpressionImporter : parse_expression::Importer<arithmetic::Expression> {
 	ucs::Netlist symbols;
 	vector<int> region;
 
@@ -28,7 +28,7 @@ struct ExpressionImporter : arithmetic::Importer<arithmetic::Expression> {
 
 arithmetic::Expression import_expression(const parse_expression::expression &syntax, ucs::Netlist nets, tokenizer *tokens, int region = 0);
 
-struct CompositionImporter : arithmetic::Importer<arithmetic::Choice> {
+struct CompositionImporter : parse_expression::Importer<arithmetic::Choice> {
 	ucs::Netlist symbols;
 	vector<int> region;
 
