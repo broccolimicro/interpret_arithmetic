@@ -31,9 +31,8 @@ struct composition_config {
 
 using constant = parse_expression::default_constant;
 using literal = parse_expression::default_literal;
-using type_name = parse::wrapper<parse::instance>;
-using term_name = parse::wrapper<parse::instance>;
-using label = parse::wrapper<parse::number>;
+using label = parse::wrapper<parse::instance>;
+using ident = parse::wrapper<parse::number>;
 
 using expression = parse_expression::rvalue<expression_config>;
 using guard = parse_expression::rvalue<expression_config, parse_expression::guard>;

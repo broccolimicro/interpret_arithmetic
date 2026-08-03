@@ -28,9 +28,7 @@ string export_value(const Value &v) {
 		return ::to_string(v.rval);
 	} else if (v.type == Value::STRING) {
 		return "\"" + v.sval + "\"";
-	} else if (v.type == Value::TYPE) {
-		return v.sval;
-	} else if (v.type == Value::TERM) {
+	} else if (v.type == Value::LABEL) {
 		return v.sval;
 	}
 	internal("", "unrecognized value in export_value()", __FILE__, __LINE__);
@@ -152,10 +150,10 @@ parse_expression::expression ExpressionExporter::export_expression(int func, vec
 	const parse_expression::precedence_set &order = precedence();
 
 	if (func == Operation::VALIDITY) {
-		args.insert(args.begin(), Operand::termOf("valid"));
+		args.insert(args.begin(), Operand::labelOf("valid"));
 		func = Operation::CALL;
 	} else if (func == Operation::TRUTHINESS) {
-		args.insert(args.begin(), Operand::termOf("true"));
+		args.insert(args.begin(), Operand::labelOf("true"));
 		func = Operation::CALL;
 	} else if (func == Operation::NEGATIVE) {
 		args.push_back(Operand::intOf(0));

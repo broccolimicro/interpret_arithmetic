@@ -13,10 +13,37 @@
 
 using namespace std;
 
+TEST(ExpressionParser, BasicLabels) {
+	// Test simple AND, OR, NOT operations
+	string test_code = "a.b";
+
+	tokenizer tokens;
+	tokens.register_token<parse::block_comment>(false);
+	tokens.register_token<parse::line_comment>(false);
+	test::expression::register_syntax(tokens);
+	tokens.insert("basic_labels", test_code);
+
+	MockNetlist v;
+
+	test::expression in(tokens);
+
+	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
+
+	expr.top = minimize(expr, {expr.top}).map(expr.top);
+	expr.top = minimize(expr, {expr.top}, arithmetic::rewriteHuman()+arithmetic::rewriteSimple()).map(expr.top);
+
+	auto out = test::export_expression(expr, v);
+
+	EXPECT_TRUE(tokens.is_clean());
+	EXPECT_TRUE(out.valid);
+	EXPECT_EQ(out.to_string(), "a.b");
+	EXPECT_EQ(expr.to_string(true, v), "top: e0\ne0 = v:a.l:b  (34)\n");
+}
+
 TEST(ExpressionParser, BasicBooleanOperations) {
 	// Test simple AND, OR, NOT operations
 	string test_code = "a & b | ~c";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -24,7 +51,7 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 	tokens.insert("basic_boolean", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
@@ -42,7 +69,7 @@ TEST(ExpressionParser, BasicBooleanOperations) {
 TEST(ExpressionParser, ComplexBooleanOperations) {
 	// Test more complex boolean expressions
 	string test_code = "(a & b) | (~c & d)";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -50,7 +77,7 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 	tokens.insert("complex_boolean", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
@@ -65,7 +92,7 @@ TEST(ExpressionParser, ComplexBooleanOperations) {
 TEST(ExpressionParser, ArithmeticOperations) {
 	// Test arithmetic operations
 	string test_code = "a + b * c";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -73,7 +100,7 @@ TEST(ExpressionParser, ArithmeticOperations) {
 	tokens.insert("arithmetic_ops", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	auto out = test::export_expression(expr, v);
@@ -86,7 +113,7 @@ TEST(ExpressionParser, ArithmeticOperations) {
 TEST(ExpressionParser, ComparisonOperations) {
 	// Test comparison operations
 	string test_code = "a < b & c == d";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -94,7 +121,7 @@ TEST(ExpressionParser, ComparisonOperations) {
 	tokens.insert("comparison_ops", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
@@ -109,7 +136,7 @@ TEST(ExpressionParser, ComparisonOperations) {
 TEST(ExpressionParser, MixedOperations) {
 	// Test mixing boolean, arithmetic, and comparison operations
 	string test_code = "(a + b > c) & (d * e < f)";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -117,7 +144,7 @@ TEST(ExpressionParser, MixedOperations) {
 	tokens.insert("mixed_ops", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
@@ -132,7 +159,7 @@ TEST(ExpressionParser, MixedOperations) {
 TEST(ExpressionParser, NegationAndIdentity) {
 	// Test unary operations
 	string test_code = "+a & -b";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -140,7 +167,7 @@ TEST(ExpressionParser, NegationAndIdentity) {
 	tokens.insert("unary_ops", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
@@ -155,7 +182,7 @@ TEST(ExpressionParser, NegationAndIdentity) {
 TEST(ExpressionParser, BitShifting) {
 	// Test bit shifting operations
 	string test_code = "a << 2 | b >> 3";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -163,7 +190,7 @@ TEST(ExpressionParser, BitShifting) {
 	tokens.insert("shift_ops", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
@@ -178,7 +205,7 @@ TEST(ExpressionParser, BitShifting) {
 TEST(ExpressionParser, Constants) {
 	// Test numeric constants
 	string test_code = "a & 42 | b & 0";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -186,7 +213,7 @@ TEST(ExpressionParser, Constants) {
 	tokens.insert("constants", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
@@ -201,7 +228,7 @@ TEST(ExpressionParser, Constants) {
 TEST(ExpressionParser, TrueFalse) {
 	// Test gnd and vdd constants
 	string test_code = "a & vdd | b & gnd";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -209,7 +236,7 @@ TEST(ExpressionParser, TrueFalse) {
 	tokens.insert("true_false", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
@@ -224,7 +251,7 @@ TEST(ExpressionParser, TrueFalse) {
 TEST(ExpressionParser, DifferentRegions) {
 	// Test expressions with region specifications
 	string test_code = "a'1 & b'2 | c'3";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -244,7 +271,7 @@ TEST(ExpressionParser, DifferentRegions) {
 
 TEST(ExpressionParser, Function) {
 	string test_code = "x + y.myfunc(a, b, c)";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -252,7 +279,7 @@ TEST(ExpressionParser, Function) {
 	tokens.insert("function", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
@@ -266,7 +293,7 @@ TEST(ExpressionParser, Function) {
 
 TEST(ExpressionParser, EmptyFunction) {
 	string test_code = "x + z.f.y.myfunc()";
-	
+
 	tokenizer tokens;
 	tokens.register_token<parse::block_comment>(false);
 	tokens.register_token<parse::line_comment>(false);
@@ -274,7 +301,7 @@ TEST(ExpressionParser, EmptyFunction) {
 	tokens.insert("function", test_code);
 
 	MockNetlist v;
-	
+
 	test::expression in(tokens);
 	arithmetic::Expression expr = test::import_expression(in, v, &tokens);
 	expr.top = minimize(expr, {expr.top}).map(expr.top);
