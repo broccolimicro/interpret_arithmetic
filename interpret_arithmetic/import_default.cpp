@@ -25,6 +25,8 @@ Expression import_constant(string cnst, tokenizer *tokens) {
 		return Expression::gnd();
 	} else if (cnst == "vdd") {
 		return Expression::vdd();
+	} else if (cnst == "undef") {
+		return Expression::undef();
 	} else if (not cnst.empty()) {
 		size_t n = cnst.find_first_of("0123456789");
 		size_t m = cnst.find_first_of(".-+");
