@@ -160,7 +160,7 @@ parse_expression::expression ExpressionExporter::export_expression(int func, vec
 		func = Operation::LESS;
 	} else if (func == Operation::INVERSE) {
 		args.insert(args.begin(), Operand::realOf(1.0));
-		func = Operation::DIVIDE;
+		func = Operation::INTDIV;
 	} else if (func == Operation::MEMBER_CALL) {
 		return export_member_call(export_arguments(args, sub));
 	}
